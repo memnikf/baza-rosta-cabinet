@@ -7,8 +7,8 @@ compatibility_date = "2026-07-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "baza-rosta-db"
-database_id = "ВСТАВИТЬ_ID_ПОСЛЕ_СОЗДАНИЯ"
+database_id = "19fc0495-3bd1-4eb8-87c5-54fd18745c80"
 
 [vars]
 DEEPSEEK_MODEL = "deepseek-v4-flash"
-DEEPSEEK_API_KEY = "sk-69e70900608b44cdbb44d5733245227d"
+# DEEPSEEK_API_KEY задаётся секретом: npx wrangler secret put DEEPSEEK_API_KEY
