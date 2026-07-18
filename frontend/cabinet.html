@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ИИ Кабинет — База Роста</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+  // НАСТРОЙКА API — адрес вашего Cloudflare Worker
+  const API_URL = 'https://ВАШ-ВОРКЕР.workers.dev';
+
+  /* ==============================================
+     АВТОРИЗАЦИЯ TILDA MEMBERS
+     ============================================== */
+  function getCurrentUser() {
+    // 1. Глобальный объект Tilda Members
+    if (typeof window.tilda_member !== 'undefined' && window.tilda_member) {
+      const u = {
+        tilda_user_id: window.tilda_member.user_id || window.tilda_member.id,
+        email: window.tilda_member.email || '',
+        name: window.tilda_member.name || window.tilda_member.first_name || 'Пользователь'
+      };
+      localStorage.setItem('baza_rosta_user', JSON.stringify(u));
+      return u;
+    }
+    // 2. URL-параметры (страница-переадресация после логина Tilda)
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get('tilda_user_id') || params.get('uid');
+    if (uid) {
+      const u = {
+        tilda_user_id: uid,
+        email: params.get('email') || '',
+        name: params.get('name') || 'Пользователь'
+      };
+      localStorage.setItem('baza_rosta_user', JSON.stringify(u));
+      return u;
+    }
+    // 3. Пользователь, запомненный с прошлого визита (Tilda не всегда
+    //    отдаёт member-объект на внутренних переходах — данные не теряем)
+    const saved = localStorage.getItem('baza_rosta_user');
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        if (u && u.tilda_user_id) return u;
+      } catch (e) {}
+    }
+    // 4. Фолбэк для локальной разработки
+    let localUid = localStorage.getItem('baza_rosta_local_dev_uid');
+    if (!localUid) {
+      localUid = 'dev-' + Date.now();
+      localStorage.setItem('baza_rosta_local_dev_uid', localUid);
+    }
+    return { tilda_user_id: localUid, email: 'dev@local.com', name: 'Разработчик' };
+  }
+
+  let CURRENT_USER = getCurrentUser();
+
+  async function initUserProfile() {
+    try {
+      const res = await fetch(API_URL + '/api/user/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(CURRENT_USER)
+      });
+      const data = await res.json();
+      // Сервер — источник истины: если в базе есть имя, показываем его
+      if (data && data.name) {
+        CURRENT_USER.name = data.name;
+        const el = document.getElementById('userName');
+        if (el) el.textContent = data.name;
+      }
+      // Восстанавливаем переписку, чтобы при входе всё уже было на месте
+      if (data && data.has_history) loadChatHistory();
+      loadDiaryData();
+    } catch (e) {
+      console.error('Ошибка инициализации пользователя:', e);
+    }
+  }
+  window.addEventListener('DOMContentLoaded', initUserProfile);
+</script>
+
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --beige:#B79B86;
+  --beige-dark:#A6876F;
+  --beige-light:#C9B5A3;
+  --beige-soft:#F5EFE9;
+  --beige-mist:#FAF6F2;
+
+  --bg:#FFFFFF;
+  --bg2:#FAF8F5;
+  --bg3:#F5F1EC;
+
+  --card:#FFFFFF;
+  --card-border:#F0F0F0;
+  --card-border-hover:#E5DDD5;
+
+  --text:#2E2A26;
+  --text2:#4A4A4A;
+  --text3:#8A8A8A;
+  --text4:#B5B0AA;
+
+  --radius:24px;
+  --radius-sm:18px;
+  --radius-xs:14px;
+  --radius-pill:9999px;
+
+  --shadow-xs:0 1px 2px rgba(74,58,46,.04);
+  --shadow-sm:0 2px 8px rgba(74,58,46,.04);
+  --shadow:0 8px 28px rgba(74,58,46,.06);
+
+  --top-h:60px;
+  --bot-h:72px;
+
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+}
+
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;background:var(--bg)}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text2);overflow:hidden;height:100vh;height:100dvh;line-height:1.65;user-select:none;-webkit-user-select:none;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;transition:all .3s var(--ease)}
+
+/* === TOP BAR === */
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--top-h);display:flex;align-items:center;gap:14px;padding:0 20px;background:rgba(255,255,255,.85);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-bottom:1px solid var(--card-border)}
+.back-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--card-border);font-size:18px;color:var(--beige-dark);transition:all .35s var(--ease);flex-shrink:0;box-shadow:var(--shadow-xs);animation:backShine 3s ease-in-out infinite}
+.back-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(183,155,134,.22);border-color:rgba(183,155,134,.3)}
+.back-btn:active{transform:translateY(0) scale(.94)}
+.top-bar-title{font-weight:600;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.top-bar-ai{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--beige-dark);background:var(--beige-soft);padding:5px 12px;border-radius:var(--radius-pill);border:1px solid rgba(183,155,134,.18)}
+.top-bar-ai .ai-dot{width:6px;height:6px;border-radius:50%;background:var(--beige);animation:pdot 2.4s ease-in-out infinite}
+
+/* === SCREENS === */
+.screens{position:fixed;top:var(--top-h);bottom:var(--bot-h);left:0;right:0;overflow:hidden}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .5s var(--ease),transform .5s var(--ease);-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg)}
+.screen::-webkit-scrollbar{display:none}
+.screen.active{opacity:1;transform:translateY(0);pointer-events:auto}
+
+/* === BOTTOM NAV === */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--bot-h);display:flex;align-items:stretch;background:rgba(255,255,255,.92);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-top:1px solid var(--card-border)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;transition:color .35s var(--ease);color:rgba(183,155,134,.55);-webkit-tap-highlight-color:transparent}
+.nav-item .nav-ico{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .35s var(--ease);border-radius:50%;animation:carouselWave 5s ease-in-out infinite, navGlowWave 5s ease-in-out infinite}
+.nav-item .nav-lbl{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.nav-item.active{color:var(--beige)}
+.nav-item.active .nav-ico{transform:scale(1.18) translateY(-2px);animation:activeShine 2s ease-in-out infinite, navGlow 2s ease-in-out infinite;border-radius:50%}
+.nav-item::before{content:'';position:absolute;top:-1px;left:25%;right:25%;height:2px;border-radius:0 0 4px 4px;background:var(--beige);transform:scaleX(0);transition:transform .4s var(--ease)}
+.nav-item.active::before{transform:scaleX(1);animation:navGlow 2s ease-in-out infinite;background:linear-gradient(90deg,#D4A574,#E0B988,#C9956B)}
+
+/* === COMMON === */
+.pad{padding:32px 24px 48px}
+.section-tag{display:inline-block;padding:5px 16px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;margin-bottom:18px;background:var(--beige-soft);color:var(--beige-dark);border:1px solid rgba(183,155,134,.18)}
+.sh2{font-size:26px;font-weight:700;line-height:1.15;margin-bottom:14px;letter-spacing:-.025em;color:var(--text)}
+.sh2 .grad{background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sp{font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:28px;max-width:560px}
+
+/* === CHAT === */
+.chat-wrap{display:flex;flex-direction:column;height:100%}
+.chat-messages{flex:1;overflow-y:auto;padding:20px 20px 16px;scrollbar-width:none}
+.chat-messages::-webkit-scrollbar{display:none}
+.chat-msg{display:flex;gap:10px;margin-bottom:12px;animation:fadeUp .4s var(--ease) both}
+.chat-msg.cm-user{flex-direction:row-reverse}
+.chat-msg .cm-av{width:34px;height:34px;min-width:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.chat-msg.cm-ai .cm-av{background:var(--beige);color:#fff;box-shadow:0 4px 12px rgba(183,155,134,.22)}
+.chat-msg.cm-user .cm-av{background:var(--bg2);border:1px solid var(--card-border);color:var(--text3);font-weight:700;font-size:12px}
+.chat-msg .cm-bub{max-width:82%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55}
+.chat-msg.cm-ai .cm-bub{background:var(--card);color:var(--text2);border:1px solid var(--card-border);border-bottom-left-radius:6px;box-shadow:var(--shadow-xs)}
+.chat-msg.cm-user .cm-bub{background:var(--beige);color:#fff;border-bottom-right-radius:6px;box-shadow:0 4px 14px rgba(183,155,134,.22)}
+.chat-typing{display:flex;gap:4px;padding:6px 0}
+.chat-typing span{width:6px;height:6px;border-radius:50%;background:var(--text4);animation:tdot 1.4s ease-in-out infinite}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+.chat-input-row{display:flex;gap:10px;padding:12px 20px 16px;background:var(--bg);border-top:1px solid var(--card-border)}
+.chat-input{flex:1;padding:13px 18px;border-radius:var(--radius-pill);background:var(--card);border:1px solid var(--card-border);font-size:14px;color:var(--text);font-family:inherit;outline:none;transition:border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.chat-input::placeholder{color:var(--text4)}
+.chat-input:focus{border-color:rgba(183,155,134,.4);box-shadow:0 0 0 4px rgba(183,155,134,.08)}
+.chat-send{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--beige);color:#fff;font-size:18px;flex-shrink:0;box-shadow:0 6px 16px rgba(183,155,134,.28);transition:all .3s var(--ease)}
+.chat-send:hover{background:var(--beige-dark);transform:translateY(-2px) scale(1.04);box-shadow:0 10px 22px rgba(183,155,134,.36)}
+.chat-send:active{transform:translateY(0) scale(.94)}
+
+/* === ДНЕВНИК СОСТОЯНИЯ === */
+.diary-hero{position:relative;padding:36px 24px 28px;text-align:center;overflow:hidden;border-radius:var(--radius);margin-bottom:20px;background:linear-gradient(165deg,var(--beige-soft),var(--beige-mist));border:1px solid rgba(183,155,134,.18);box-shadow:var(--shadow-xs)}
+.diary-hero .dh-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.32;pointer-events:none}
+.diary-hero .dh-o1{width:160px;height:160px;background:#E8D9C9;top:-60px;left:-40px}
+.diary-hero .dh-o2{width:120px;height:120px;background:#DCC9B5;bottom:-40px;right:-30px}
+.status-ring{width:104px;height:104px;margin:0 auto 16px;position:relative;z-index:1}
+.status-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.status-ring .ring-bg{fill:none;stroke:var(--bg2);stroke-width:7}
+.status-ring .ring-fg{fill:none;stroke:url(#rGr);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease}
+.status-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.status-val .sv-n{font-size:26px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.02em}
+.status-val .sv-l{font-size:9px;color:var(--text3);font-weight:500;margin-top:3px;letter-spacing:.04em;text-transform:uppercase}
+.diary-hero h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;position:relative;z-index:1;letter-spacing:-.015em}
+.diary-hero p{font-size:13px;color:var(--text3);line-height:1.6;position:relative;z-index:1;max-width:320px;margin:0 auto}
+.diary-hero .dh-ai{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:5px 14px;border-radius:var(--radius-pill);background:var(--card);border:1px solid rgba(183,155,134,.18);font-size:11px;font-weight:600;color:var(--beige-dark);position:relative;z-index:1;letter-spacing:.02em}
+.diary-hero .dh-ai .dh-dot{width:6px;height:6px;border-radius:50%;background:var(--beige);animation:pdot 2.4s ease-in-out infinite}
+
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.metric-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:22px 18px;position:relative;overflow:hidden;box-shadow:var(--shadow-xs);transition:transform .4s var(--ease),box-shadow .4s var(--ease),border-color .4s var(--ease)}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--card-border-hover)}
+.metric-card .mc-glow{position:absolute;width:110px;height:110px;border-radius:50%;filter:blur(55px);opacity:.18;top:-35px;right:-35px;pointer-events:none;background:var(--beige)}
+.mc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:1}
+.mc-head .mc-left{display:flex;align-items:center;gap:8px}
+.mc-head .mc-ico{width:32px;height:32px;border-radius:10px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:16px}
+.mc-head .mc-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.01em}
+.mc-val{font-size:30px;font-weight:700;line-height:1;margin-bottom:12px;position:relative;z-index:1;letter-spacing:-.02em;color:var(--beige-dark)}
+.mc-bar{height:6px;background:var(--bg2);border-radius:99px;overflow:hidden;position:relative;z-index:1}
+.mc-bar-fill{height:100%;border-radius:99px;transition:width 1s var(--ease);background:linear-gradient(90deg,var(--beige-dark),var(--beige-light))}
+.mc-desc{font-size:11px;color:var(--text4);margin-top:8px;position:relative;z-index:1;line-height:1.4}
+
+.trend-block{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:24px 22px;margin-bottom:20px;box-shadow:var(--shadow-xs)}
+.trend-block h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px;letter-spacing:-.01em}
+.trend-chart{display:flex;align-items:flex-end;justify-content:space-between;height:130px;gap:7px;padding-bottom:26px;position:relative}
+.trend-chart .tc-grid{position:absolute;left:0;right:0;bottom:26px;top:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.tc-grid-line{width:100%;height:1px;background:var(--card-border)}
+.trend-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1}
+.trend-day .td-bar-wrap{width:100%;height:100px;display:flex;align-items:flex-end;justify-content:center}
+.trend-day .td-bar{width:70%;max-width:34px;border-radius:8px 8px 4px 4px;transition:height 1s var(--ease);min-height:4px;background:linear-gradient(to top,var(--beige-dark),var(--beige-light))}
+.trend-day .td-val{font-size:11px;font-weight:700;color:var(--text);line-height:1}
+.trend-day .td-label{font-size:10px;color:var(--text3);font-weight:500}
+.trend-day.today .td-label{color:var(--beige-dark);font-weight:700}
+.trend-empty{font-size:13px;color:var(--text3);text-align:center;padding:20px 0}
+
+/* === ПЕРЕЛИВАНИЕ ИКОНОК === */
+@keyframes carouselWave{0%,15%{color:rgba(183,155,134,.55)}20%{color:rgba(199,160,118,.85)}25%{color:#D4A574}30%{color:#E0B988}35%{color:#C9956B}40%,55%{color:rgba(166,135,111,.70)}60%{color:rgba(212,184,150,.65)}65%{color:rgba(154,120,92,.55)}100%{color:rgba(183,155,134,.55)}}
+@keyframes activeShine{0%{color:#B79B86}12%{color:#D4A574}25%{color:#E0B988}37%{color:#C9956B}50%{color:#E8C9A0}62%{color:#D4A574}75%{color:#B79B86}87%{color:#C29E80}100%{color:#B79B86}}
+@keyframes navGlow{0%,100%{box-shadow:0 0 10px 2px rgba(183,155,134,.22)}25%{box-shadow:0 0 26px 6px rgba(212,165,116,.45)}50%{box-shadow:0 0 18px 4px rgba(224,185,136,.35)}75%{box-shadow:0 0 24px 5px rgba(201,149,107,.40)}}
+@keyframes navGlowWave{0%,15%{box-shadow:0 0 0 0 rgba(212,165,116,0)}25%{box-shadow:0 0 18px 3px rgba(212,165,116,.35)}35%{box-shadow:0 0 12px 2px rgba(224,185,136,.25)}50%,100%{box-shadow:0 0 0 0 rgba(212,165,116,0)}}
+@keyframes backShine{0%{color:var(--beige-dark)}25%{color:#D4A574}50%{color:#E0B988}75%{color:#C29E80}100%{color:var(--beige-dark)}}
+
+.nav-item[data-tab="consult"] .nav-ico{animation-delay:0s,0s}
+.nav-item[data-tab="diary"]   .nav-ico{animation-delay:1.5s,1.5s}
+
+@media (prefers-reduced-motion: reduce){.nav-item .nav-ico,.nav-item.active .nav-ico,.nav-item.active::before,.back-btn{animation:none}}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+@media(min-width:900px){
+  body{background:var(--bg3)}
+  .top-bar{left:50%;right:auto;transform:translateX(-50%);width:820px;padding:0 32px;height:64px}
+  .screens{left:50%;right:auto;transform:translateX(-50%);width:820px}
+  .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:820px;height:76px}
+  .nav-item .nav-lbl{font-size:11px}
+  .nav-item .nav-ico{font-size:24px;width:32px;height:32px}
+  .back-btn{width:46px;height:46px;font-size:20px}
+  .top-bar-title{font-size:17px}
+  .top-bar-ai{font-size:12px;padding:6px 14px}
+  .pad{padding:48px 40px 64px}
+  .sh2{font-size:32px;margin-bottom:18px}
+  .sp{font-size:15px;margin-bottom:36px}
+  .section-tag{font-size:12px;padding:6px 18px;margin-bottom:24px}
+  .chat-messages{padding:28px 32px 20px}
+  .chat-input-row{padding:16px 32px 20px}
+  .chat-input{padding:15px 22px;font-size:15px;border-radius:9999px}
+  .chat-send{width:50px;height:50px;font-size:20px}
+  .chat-msg .cm-av{width:36px;height:36px;min-width:36px;font-size:16px}
+  .chat-msg .cm-bub{padding:14px 18px;font-size:15px}
+  .metrics-grid{grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .metric-card{padding:26px 22px}
+  .mc-val{font-size:36px}
+  .mc-head .mc-ico{width:36px;height:36px;font-size:18px;border-radius:12px}
+  .diary-hero{padding:48px 32px 36px}
+  .status-ring{width:120px;height:120px;margin-bottom:20px}
+  .status-val .sv-n{font-size:30px}
+  .diary-hero h3{font-size:20px}
+  .diary-hero p{font-size:14px;max-width:380px}
+  .trend-chart{height:150px}
+  .trend-day .td-bar-wrap{height:116px}
+  .trend-block{padding:28px 26px}
+  .trend-block h4{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<svg style="position:absolute;width:0;height:0"><defs><linearGradient id="rGr" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#A6876F"/><stop offset="50%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B79B86"/></linearGradient></defs></svg>
+
+<div class="top-bar">
+  <a href="https://betacourse.tilda.ws/" class="back-btn">←</a>
+  <div class="top-bar-title">ИИ Кабинет</div>
+  <div class="top-bar-ai"><span class="ai-dot"></span>Елизавета</div>
+</div>
+
+<div class="screens">
+
+  <!-- ===== ЧАТ ===== -->
+  <div class="screen active" id="s-consult">
+    <div class="chat-wrap">
+      <div class="chat-messages" id="consultMsgs">
+        <div class="chat-msg cm-ai">
+          <div class="cm-av">🤖</div>
+          <div class="cm-bub">Здравствуйте, <span id="userName"></span>! Я Елизавета, ваш ИИ-психолог. Расскажите, как вы себя чувствуете или что вас беспокоит — я помогу разобраться.</div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="consultInput" type="text" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="chat-send" onclick="sendMsg()">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ДНЕВНИК ===== -->
+  <div class="screen" id="s-diary">
+    <div class="pad">
+      <div class="section-tag">Аналитика</div>
+      <h2 class="sh2">Дневник <span class="grad">состояния</span></h2>
+      <p class="sp">Персональные показатели от ИИ-психолога Елизаветы — обновляются автоматически по вашим разговорам.</p>
+      <div class="diary-hero">
+        <div class="dh-orb dh-o1"></div>
+        <div class="dh-orb dh-o2"></div>
+        <div class="status-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50"/>
+            <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+          </svg>
+          <div class="status-val">
+            <div class="sv-n" id="svNum">—</div>
+            <div class="sv-l">из 100</div>
+          </div>
+        </div>
+        <h3 id="svTitle">Загрузка...</h3>
+        <p id="svDesc">Елизавета анализирует ваши данные</p>
+        <div class="dh-ai"><span class="dh-dot"></span> Данные от Елизаветы</div>
+      </div>
+
+      <div class="metrics-grid" id="metricsGrid"></div>
+
+      <div class="trend-block">
+        <h4>📈 Динамика (последние замеры)</h4>
+        <div class="trend-chart" id="trendChart">
+          <div class="tc-grid">
+            <div class="tc-grid-line"></div>
+            <div class="tc-grid-line"></div>
+            <div class="tc-grid-line"></div>
+            <div class="tc-grid-line"></div>
+          </div>
+        </div>
+        <div class="trend-empty" id="trendEmpty" style="display:none">Пока мало данных — поговорите с Елизаветой, и здесь появится график.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" data-tab="consult" onclick="goTab('consult')">
+    <div class="nav-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/><circle cx="9" cy="11.5" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="11.5" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg></div>
+    <div class="nav-lbl">Чат</div>
+  </div>
+  <div class="nav-item" data-tab="diary" onclick="goTab('diary')">
+    <div class="nav-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/><path d="M9 9h6M9 13h4"/><circle cx="7" cy="6" r="1" fill="currentColor" stroke="none"/></svg></div>
+    <div class="nav-lbl">Дневник</div>
+  </div>
+</div>
+
+<script>
+document.getElementById('userName').textContent = CURRENT_USER.name;
+
+/* === НАВИГАЦИЯ === */
+function goTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-tab]').forEach(n => n.classList.remove('active'));
+  const scr = document.getElementById('s-' + name);
+  const nav = document.querySelector('.nav-item[data-tab="' + name + '"]');
+  if (scr) { scr.classList.add('active'); scr.scrollTop = 0; }
+  if (nav) nav.classList.add('active');
+  if (name === 'diary') loadDiaryData();
+}
+
+/* === ЧАТ === */
+let sending = false;
+
+// Восстановление переписки при входе — пользователь видит свой чат таким,
+// каким его оставил
+async function loadChatHistory() {
+  try {
+    const qp = new URLSearchParams({ tilda_user_id: CURRENT_USER.tilda_user_id, limit: 50 });
+    const res = await fetch(API_URL + '/history?' + qp.toString());
+    const data = await res.json();
+    const history = (data && data.history) || [];
+    if (!history.length) return;
+    history.forEach(m => addBubble(m.role === 'assistant' ? 'ai' : 'user', m.content));
+  } catch (e) {
+    console.error('Ошибка загрузки истории чата:', e);
+  }
+}
+
+async function sendMsg() {
+  const input = document.getElementById('consultInput');
+  const text = input.value.trim();
+  if (!text || sending) return;
+  sending = true;
+
+  input.value = '';
+  addBubble('user', text);
+
+  const tid = 'typ-' + Date.now();
+  const msgs = document.getElementById('consultMsgs');
+  const td = document.createElement('div');
+  td.className = 'chat-msg cm-ai'; td.id = tid;
+  td.innerHTML = '<div class="cm-av">🤖</div><div class="cm-bub"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(td); msgs.scrollTop = msgs.scrollHeight;
+
+  let replyText = '';
+  try {
+    const res = await fetch(API_URL + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...CURRENT_USER, message: text })
+    });
+    const data = await res.json();
+    replyText = data.reply || 'Не удалось получить ответ от Елизаветы.';
+  } catch (e) {
+    console.error('Ошибка сети:', e);
+    replyText = 'Произошла ошибка соединения. Проверьте интернет и попробуйте снова.';
+  }
+
+  const old = document.getElementById(tid);
+  if (old) old.remove();
+  addBubble('ai', replyText);
+  sending = false;
+}
+
+// Текст вставляем безопасно (textContent), переносы строк — через CSS
+function addBubble(type, text) {
+  const m = document.getElementById('consultMsgs');
+  const d = document.createElement('div');
+  d.className = 'chat-msg cm-' + type;
+  const av = document.createElement('div');
+  av.className = 'cm-av';
+  av.textContent = type === 'ai' ? '🤖' : (CURRENT_USER.name || 'Вы').charAt(0).toUpperCase();
+  const bub = document.createElement('div');
+  bub.className = 'cm-bub';
+  bub.style.whiteSpace = 'pre-wrap';
+  bub.textContent = text;
+  d.appendChild(av); d.appendChild(bub);
+  m.appendChild(d); m.scrollTop = m.scrollHeight;
+}
+
+/* === ДНЕВНИК === */
+const METRICS = [
+  { key: 'mood',       ico: '😊', label: 'Настроение' },
+  { key: 'energy',     ico: '⚡', label: 'Энергия' },
+  { key: 'stress',     ico: '🔥', label: 'Стресс' },
+  { key: 'confidence', ico: '💪', label: 'Уверенность' },
+  { key: 'motivation', ico: '🎯', label: 'Мотивация' },
+  { key: 'happiness',  ico: '🌿', label: 'Удовлетворённость' },
+];
+
+function overallScore(s) {
+  const vals = METRICS.map(m => {
+    const v = Number(s[m.key]);
+    if (!Number.isFinite(v)) return null;
+    return m.key === 'stress' ? 100 - v : v; // стресс инвертируем
+  }).filter(v => v !== null);
+  if (!vals.length) return null;
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
+function renderMetrics(s) {
+  const grid = document.getElementById('metricsGrid');
+  grid.innerHTML = '';
+  METRICS.forEach(m => {
+    const v = Number.isFinite(Number(s[m.key])) ? Number(s[m.key]) : null;
+    const card = document.createElement('div');
+    card.className = 'metric-card';
+    card.innerHTML =
+      '<div class="mc-glow"></div>' +
+      '<div class="mc-head"><div class="mc-left"><span class="mc-ico">' + m.ico + '</span><span class="mc-label">' + m.label + '</span></div></div>' +
+      '<div class="mc-val">' + (v === null ? '—' : v + '%') + '</div>' +
+      '<div class="mc-bar"><div class="mc-bar-fill" style="width:' + (v === null ? 0 : v) + '%"></div></div>' +
+      '<div class="mc-desc">' + (v === null ? 'Ожидание данных' : 'Оценка от Елизаветы') + '</div>';
+    grid.appendChild(card);
+  });
+}
+
+async function loadDiaryData() {
+  try {
+    const qp = new URLSearchParams({
+      tilda_user_id: CURRENT_USER.tilda_user_id,
+      email: CURRENT_USER.email,
+      name: CURRENT_USER.name
+    });
+    const res = await fetch(API_URL + '/state?' + qp.toString());
+    const s = await res.json();
+
+    if (!s || s.message || s.error) {
+      document.getElementById('svNum').textContent = '—';
+      document.getElementById('svTitle').textContent = 'Нет данных';
+      document.getElementById('svDesc').textContent = 'Поговорите с Елизаветой в чате, чтобы появились метрики.';
+      renderMetrics({});
+      loadTrendChart();
+      return;
+    }
+
+    const overall = overallScore(s);
+    const circ = 314.16;
+    document.getElementById('ringFg').style.strokeDashoffset = overall === null ? circ : circ - (circ * overall / 100);
+    document.getElementById('svNum').textContent = overall === null ? '—' : overall;
+    document.getElementById('svTitle').textContent = overall === null ? 'Нет данных'
+      : overall >= 70 ? 'Хорошее состояние' : overall >= 40 ? 'Среднее состояние' : 'Требует внимания';
+    document.getElementById('svDesc').textContent = s.note || 'Данные от ИИ-аналитики';
+
+    renderMetrics(s);
+    loadTrendChart();
+  } catch (e) {
+    console.error('Ошибка загрузки дневника:', e);
+    document.getElementById('svNum').textContent = '—';
+    document.getElementById('svTitle').textContent = 'Нет данных';
+    document.getElementById('svDesc').textContent = 'Не удалось загрузить данные. Попробуйте обновить страницу.';
+    renderMetrics({});
+    loadTrendChart();
+  }
+}
+
+async function loadTrendChart() {
+  const chart = document.getElementById('trendChart');
+  const empty = document.getElementById('trendEmpty');
+  chart.querySelectorAll('.trend-day').forEach(e => e.remove());
+
+  let history = [];
+  try {
+    const qp = new URLSearchParams({ tilda_user_id: CURRENT_USER.tilda_user_id });
+    const res = await fetch(API_URL + '/state/history?' + qp.toString());
+    const data = await res.json();
+    history = (data && data.history) || [];
+  } catch (e) {
+    console.error('Ошибка загрузки истории:', e);
+  }
+
+  if (history.length < 2) {
+    chart.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  chart.style.display = 'flex';
+  empty.style.display = 'none';
+
+  history.forEach((s, i) => {
+    const w = overallScore(s) || 0;
+    const isLast = i === history.length - 1;
+    const d = s.created_at ? new Date(s.created_at.replace(' ', 'T') + 'Z') : null;
+    const label = isLast ? 'Сейчас' : (d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '');
+    const div = document.createElement('div');
+    div.className = 'trend-day' + (isLast ? ' today' : '');
+    div.innerHTML = '<div class="td-val">' + w + '</div><div class="td-bar-wrap"><div class="td-bar" style="height:' + Math.max(4, w) + '%"></div></div><div class="td-label">' + label + '</div>';
+    chart.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>

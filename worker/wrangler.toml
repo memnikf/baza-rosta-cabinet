@@ -1,0 +1,14 @@
+name = "baza-rosta-ai"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+# Создать базу: npx wrangler d1 create baza-rosta-db
+# и вставить сюда database_id из вывода команды
+[[d1_databases]]
+binding = "DB"
+database_name = "baza-rosta-db"
+database_id = "ВСТАВИТЬ_ID_ПОСЛЕ_СОЗДАНИЯ"
+
+[vars]
+DEEPSEEK_MODEL = "deepseek-v4-flash"
+DEEPSEEK_API_KEY = "sk-69e70900608b44cdbb44d5733245227d"
