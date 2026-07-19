@@ -30,7 +30,6 @@
       localStorage.setItem('baza_rosta_user', JSON.stringify(u));
       return u;
     }
-    // Tilda не всегда отдаёт member-объект на внутренних переходах — берём запомненного
     try {
       const saved = JSON.parse(localStorage.getItem('baza_rosta_user'));
       if (saved && saved.tilda_user_id) return saved;
@@ -54,6 +53,7 @@
         body: JSON.stringify(CURRENT_USER)
       });
       loadChatHistory();
+      loadPracticeHistory();
     } catch (e) {
       console.error('Ошибка инициализации:', e);
     }
@@ -74,47 +74,77 @@
   --top-h:60px;--bot-h:72px;
   --ease:cubic-bezier(.22,.61,.36,1);--ease-out:cubic-bezier(.16,1,.3,1);
 }
-:root{--green:var(--beige);--green-dark:var(--beige-dark);--green-light:var(--beige-light);--emerald:var(--beige);--teal:var(--beige-dark);--amber:var(--beige-dark);--rose:var(--beige-dark)}
+
+/* Цвета для каждой вкладки навигации */
+.nav-item[data-tab="consult"]{
+  --nav-c1:#E08A60;--nav-c2:#C96E42;--nav-glow:rgba(224,138,96,.35);--nav-muted:rgba(224,138,96,.12);
+}
+.nav-item[data-tab="practice"]{
+  --nav-c1:#5D9E7A;--nav-c2:#3E8560;--nav-glow:rgba(93,158,122,.35);--nav-muted:rgba(93,158,122,.12);
+}
+.nav-item[data-tab="recom"]{
+  --nav-c1:#D4A030;--nav-c2:#B8880E;--nav-glow:rgba(212,160,48,.35);--nav-muted:rgba(212,160,48,.12);
+}
+.nav-item[data-tab="diary"]{
+  --nav-c1:#C47890;--nav-c2:#A85A74;--nav-glow:rgba(196,120,144,.35);--nav-muted:rgba(196,120,144,.12);
+}
+
 html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;background:var(--bg)}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text2);overflow:hidden;height:100vh;height:100dvh;line-height:1.65;user-select:none;-webkit-user-select:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.005em}
 a{text-decoration:none;color:inherit}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;transition:all .3s var(--ease)}
+
+/* === ВЕРХНЯЯ ПАНЕЛЬ === */
 .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--top-h);display:flex;align-items:center;gap:14px;padding:0 20px;background:rgba(255,255,255,.85);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-bottom:1px solid var(--card-border)}
-.back-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--card-border);font-size:18px;color:var(--beige-dark);transition:all .35s var(--ease);flex-shrink:0;box-shadow:var(--shadow-xs);animation:backShine 3s ease-in-out infinite}
+.back-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--card-border);font-size:18px;color:var(--beige-dark);transition:all .35s var(--ease);flex-shrink:0;box-shadow:var(--shadow-xs)}
 .back-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(183,155,134,.22);border-color:rgba(183,155,134,.3)}
-.top-bar-title{font-weight:600;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
-.top-bar-ai{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--beige-dark);background:var(--beige-soft);padding:5px 12px;border-radius:var(--radius-pill);border:1px solid rgba(183,155,134,.18)}
-.top-bar-ai .ai-dot{width:6px;height:6px;border-radius:50%;background:var(--beige);animation:pdot 2.4s ease-in-out infinite}
+.top-bar-title{font-weight:600;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em;transition:opacity .3s var(--ease)}
+.top-bar-badge{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.02em;color:#fff;padding:5px 14px;border-radius:var(--radius-pill);transition:all .4s var(--ease);flex-shrink:0}
+.top-bar-badge.badge-chat{background:linear-gradient(135deg,#E08A60,#C96E42);box-shadow:0 4px 14px rgba(224,138,96,.3)}
+.top-bar-badge.badge-practice{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 14px rgba(93,158,122,.3)}
+.top-bar-badge .ai-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:pdot 2.4s ease-in-out infinite}
+
+/* === ЭКРАНЫ === */
 .screens{position:fixed;top:var(--top-h);bottom:var(--bot-h);left:0;right:0;overflow:hidden}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .5s var(--ease),transform .5s var(--ease);-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg)}
 .screen::-webkit-scrollbar{display:none}
 .screen.active{opacity:1;transform:translateY(0);pointer-events:auto}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--bot-h);display:flex;align-items:stretch;background:rgba(255,255,255,.92);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-top:1px solid var(--card-border)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;transition:color .35s var(--ease);color:rgba(183,155,134,.55);-webkit-tap-highlight-color:transparent}
-.nav-item .nav-ico{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .35s var(--ease);border-radius:50%;animation:carouselWave 5s ease-in-out infinite,navGlowWave 5s ease-in-out infinite}
-.nav-item .nav-lbl{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.nav-item.active{color:var(--beige)}
-.nav-item.active .nav-ico{transform:scale(1.18) translateY(-2px);animation:activeShine 2s ease-in-out infinite,navGlow 2s ease-in-out infinite;border-radius:50%}
-.nav-item::before{content:'';position:absolute;top:-1px;left:25%;right:25%;height:2px;border-radius:0 0 4px 4px;background:var(--beige);transform:scaleX(0);transition:transform .4s var(--ease)}
-.nav-item.active::before{transform:scaleX(1);animation:navGlow 2s ease-in-out infinite;background:linear-gradient(90deg,#D4A574,#E0B988,#C9956B)}
-.pad{padding:32px 24px 48px}
-.section-tag{display:inline-block;padding:5px 16px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;margin-bottom:18px;background:var(--beige-soft);color:var(--beige-dark);border:1px solid rgba(183,155,134,.18)}
-.sh2{font-size:26px;font-weight:700;line-height:1.15;margin-bottom:14px;letter-spacing:-.025em;color:var(--text)}
+
+/* === НИЖНЯЯ НАВИГАЦИЯ === */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--bot-h);display:flex;align-items:stretch;background:rgba(255,255,255,.92);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-top:1px solid var(--card-border);padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;color:var(--nav-c1);opacity:.4;transition:all .4s var(--ease);-webkit-tap-highlight-color:transparent}
+.nav-item .nav-ico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:50%;transition:all .4s var(--ease);background:var(--nav-muted)}
+.nav-item .nav-lbl{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;transition:all .4s var(--ease)}
+.nav-item.active{opacity:1}
+.nav-item.active .nav-ico{background:linear-gradient(135deg,var(--nav-c1),var(--nav-c2));color:#fff;transform:scale(1.15) translateY(-3px);box-shadow:0 6px 22px 4px var(--nav-glow)}
+.nav-item.active .nav-lbl{font-weight:700;color:var(--nav-c1)}
+.nav-item:not(.active):hover{opacity:.65}
+.nav-item:not(.active):hover .nav-ico{transform:scale(1.05)}
+.nav-item::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2.5px;border-radius:0 0 4px 4px;background:linear-gradient(90deg,var(--nav-c1),var(--nav-c2));transform:scaleX(0);transition:transform .4s var(--ease)}
+.nav-item.active::before{transform:scaleX(1)}
+
+/* === ОБЩИЕ СТИЛИ КОНТЕНТА === */
+.pad{padding:28px 20px 48px}
+.section-tag{display:inline-block;padding:5px 16px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;margin-bottom:16px;background:var(--beige-soft);color:var(--beige-dark);border:1px solid rgba(183,155,134,.18)}
+.sh2{font-size:24px;font-weight:700;line-height:1.2;margin-bottom:12px;letter-spacing:-.025em;color:var(--text)}
 .sh2 .grad{background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.sp{font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:28px;max-width:560px}
-.empty-state{text-align:center;padding:48px 24px;background:var(--beige-soft);border-radius:var(--radius-sm);border:1px solid rgba(183,155,134,.18);margin-top:12px}
-.empty-state .es-ico{font-size:48px;margin-bottom:16px}
-.empty-state h4{font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px}
-.empty-state p{font-size:14px;color:var(--text3);max-width:320px;margin:0 auto}
-.test-item{display:flex;align-items:center;gap:14px;padding:18px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--card-border);margin-bottom:10px;cursor:pointer;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s var(--ease);box-shadow:var(--shadow-xs)}
+.sp{font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:24px;max-width:560px}
+
+/* === ПУСТОЕ СОСТОЯНИЕ === */
+.empty-state{text-align:center;padding:44px 20px;background:var(--beige-soft);border-radius:var(--radius-sm);border:1px solid rgba(183,155,134,.18);margin-top:12px}
+.empty-state .es-ico{font-size:44px;margin-bottom:14px}
+.empty-state h4{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-state p{font-size:13px;color:var(--text3);max-width:300px;margin:0 auto;line-height:1.6}
+
+/* === ТЕСТЫ === */
+.test-item{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--card-border);margin-bottom:10px;cursor:pointer;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s var(--ease);box-shadow:var(--shadow-xs)}
 .test-item:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--card-border-hover)}
-.test-item.ti-done{border-color:rgba(183,155,134,.3);background:linear-gradient(165deg,rgba(183,155,134,.04),var(--card))}
 .test-item .ti-ico{width:44px;height:44px;min-width:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--beige-soft)}
-.test-item .ti-info{flex:1}
-.test-item .ti-info h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
-.test-item .ti-info p{font-size:12px;color:var(--text3)}
-.test-item .ti-check{color:var(--beige-dark);font-size:16px;font-weight:700}
-.test-pass{display:none;padding:32px 24px 48px}
+.test-item .ti-info{flex:1;min-width:0}
+.test-item .ti-info h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.test-item .ti-info p{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.test-item .ti-arrow{color:var(--text4);font-size:18px;flex-shrink:0}
+.test-pass{display:none;padding:32px 20px 48px}
 .test-pass.active{display:block;animation:fadeUp .6s var(--ease-out) both}
 .tp-progress{margin-bottom:24px}
 .tp-bar{height:6px;background:var(--bg2);border-radius:99px;overflow:hidden}
@@ -136,27 +166,44 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .tp-result .tr-ico{width:80px;height:80px;margin:0 auto 20px;border-radius:22px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:40px}
 .tp-result h3{font-size:22px;font-weight:700;color:var(--text);margin-bottom:10px}
 .tr-score{font-size:44px;font-weight:700;background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+
+/* === ЧАТ (общий) === */
 .chat-wrap{display:flex;flex-direction:column;height:100%}
-.chat-messages{flex:1;overflow-y:auto;padding:20px 20px 16px;scrollbar-width:none}
+.chat-messages{flex:1;overflow-y:auto;padding:20px 16px 12px;scrollbar-width:none}
 .chat-messages::-webkit-scrollbar{display:none}
-.chat-msg{display:flex;gap:10px;margin-bottom:12px;animation:fadeUp .4s var(--ease) both}
+.chat-msg{display:flex;gap:10px;margin-bottom:14px;animation:fadeUp .4s var(--ease) both}
 .chat-msg.cm-user{flex-direction:row-reverse}
 .chat-msg .cm-av{width:34px;height:34px;min-width:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px}
 .chat-msg.cm-ai .cm-av{background:var(--beige);color:#fff;box-shadow:0 4px 12px rgba(183,155,134,.22)}
 .chat-msg.cm-user .cm-av{background:var(--bg2);border:1px solid var(--card-border);color:var(--text3);font-weight:700;font-size:12px}
-.chat-msg .cm-bub{max-width:82%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55}
+.chat-msg .cm-bub{max-width:82%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.6}
 .chat-msg.cm-ai .cm-bub{background:var(--card);color:var(--text2);border:1px solid var(--card-border);border-bottom-left-radius:6px;box-shadow:var(--shadow-xs)}
 .chat-msg.cm-user .cm-bub{background:var(--beige);color:#fff;border-bottom-right-radius:6px;box-shadow:0 4px 14px rgba(183,155,134,.22)}
 .chat-typing{display:flex;gap:4px;padding:6px 0}
 .chat-typing span{width:6px;height:6px;border-radius:50%;background:var(--text4);animation:tdot 1.4s ease-in-out infinite}
 .chat-typing span:nth-child(2){animation-delay:.2s}
 .chat-typing span:nth-child(3){animation-delay:.4s}
-.chat-input-row{display:flex;gap:10px;padding:12px 20px 16px;background:var(--bg);border-top:1px solid var(--card-border)}
-.chat-input{flex:1;padding:13px 18px;border-radius:var(--radius-pill);background:var(--card);border:1px solid var(--card-border);font-size:14px;color:var(--text);font-family:inherit;outline:none}
+.chat-input-row{display:flex;gap:10px;padding:12px 16px 16px;background:var(--bg);border-top:1px solid var(--card-border)}
+.chat-input{flex:1;padding:13px 18px;border-radius:var(--radius-pill);background:var(--card);border:1px solid var(--card-border);font-size:14px;color:var(--text);font-family:inherit;outline:none;min-width:0}
 .chat-input::placeholder{color:var(--text4)}
 .chat-input:focus{border-color:rgba(183,155,134,.4);box-shadow:0 0 0 4px rgba(183,155,134,.08)}
-.chat-send{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--beige);color:#fff;font-size:18px;flex-shrink:0;box-shadow:0 6px 16px rgba(183,155,134,.28)}
-.chat-send:hover{background:var(--beige-dark);transform:translateY(-2px) scale(1.04)}
+.chat-send{width:46px;height:46px;min-width:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--beige),var(--beige-dark));color:#fff;font-size:18px;flex-shrink:0;box-shadow:0 6px 16px rgba(183,155,134,.28);transition:all .3s var(--ease)}
+.chat-send:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 8px 22px rgba(183,155,134,.35)}
+
+/* Чат практики — зелёный акцент для пользовательских пузырей */
+#s-practice .chat-msg.cm-user .cm-bub{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 14px rgba(93,158,122,.25)}
+#s-practice .chat-msg.cm-ai .cm-av{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 12px rgba(93,158,122,.22)}
+#s-practice .chat-send{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 6px 16px rgba(93,158,122,.3)}
+#s-practice .chat-send:hover{box-shadow:0 8px 22px rgba(93,158,122,.4)}
+#s-practice .chat-input:focus{border-color:rgba(93,158,122,.4);box-shadow:0 0 0 4px rgba(93,158,122,.08)}
+
+/* === РЕКОМЕНДАЦИИ === */
+.recom-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px;margin-bottom:12px;box-shadow:var(--shadow-xs)}
+.recom-card h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4}
+.recom-card p{font-size:13px;color:var(--text3);line-height:1.6}
+.recom-date{font-size:11px;color:var(--text4);margin-top:12px;font-weight:600}
+
+/* === ДНЕВНИК === */
 .diary-hero{position:relative;padding:36px 24px 28px;text-align:center;overflow:hidden;border-radius:var(--radius);margin-bottom:20px;background:linear-gradient(165deg,var(--beige-soft),var(--beige-mist));border:1px solid rgba(183,155,134,.18)}
 .diary-hero .dh-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.32;pointer-events:none}
 .diary-hero .dh-o1{width:160px;height:160px;background:#E8D9C9;top:-60px;left:-40px}
@@ -167,56 +214,75 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .status-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .status-val .sv-n{font-size:26px;font-weight:700;color:var(--text)}
 .diary-hero h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;position:relative;z-index:1}
-.diary-hero p{font-size:13px;color:var(--text3);position:relative;z-index:1;max-width:320px;margin:0 auto}
+.diary-hero p{font-size:13px;color:var(--text3);position:relative;z-index:1;max-width:320px;margin:0 auto;line-height:1.5}
+
+/* Метрики */
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-.metric-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:22px 18px;box-shadow:var(--shadow-xs)}
-.mc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.metric-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px 16px;box-shadow:var(--shadow-xs)}
+.mc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .mc-head .mc-left{display:flex;align-items:center;gap:8px}
 .mc-head .mc-ico{width:32px;height:32px;border-radius:10px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:16px}
 .mc-head .mc-label{font-size:12px;font-weight:600;color:var(--text3)}
-.mc-val{font-size:30px;font-weight:700;line-height:1;margin-bottom:12px;color:var(--beige-dark)}
+.mc-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:12px;color:var(--beige-dark)}
 .mc-bar{height:6px;background:var(--bg2);border-radius:99px;overflow:hidden}
 .mc-bar-fill{height:100%;border-radius:99px;transition:width 1s var(--ease);background:linear-gradient(90deg,var(--beige-dark),var(--beige-light))}
-.trend-block{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:24px 22px;margin-bottom:20px;box-shadow:var(--shadow-xs)}
-.trend-block h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:18px}
-.trend-chart{display:flex;align-items:flex-end;justify-content:space-between;height:130px;gap:7px;padding-bottom:26px;position:relative}
-.trend-chart .tc-grid{position:absolute;left:0;right:0;bottom:26px;top:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
-.tc-grid-line{width:100%;height:1px;background:var(--card-border)}
-.trend-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1}
-.trend-day .td-bar-wrap{width:100%;height:100px;display:flex;align-items:flex-end;justify-content:center}
-.trend-day .td-bar{width:70%;max-width:34px;border-radius:8px 8px 4px 4px;transition:height 1s var(--ease);min-height:4px;background:linear-gradient(to top,var(--beige-dark),var(--beige-light))}
-.trend-day .td-val{font-size:11px;font-weight:700;color:var(--text)}
-.trend-day .td-label{font-size:10px;color:var(--text3);font-weight:500}
-.recom-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px;margin-bottom:12px;box-shadow:var(--shadow-xs)}
-.recom-card h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px}
-.recom-card p{font-size:13px;color:var(--text3);line-height:1.5}
-.recom-date{font-size:11px;color:var(--text4);margin-top:12px;font-weight:600}
-@keyframes carouselWave{0%,15%{color:rgba(183,155,134,.55)}20%{color:rgba(199,160,118,.85)}25%{color:#D4A574}30%{color:#E0B988}35%{color:#C9956B}40%,55%{color:rgba(166,135,111,.70)}60%{color:rgba(212,184,150,.65)}65%{color:rgba(154,120,92,.55)}100%{color:rgba(183,155,134,.55)}}
-@keyframes activeShine{0%{color:#B79B86}12%{color:#D4A574}25%{color:#E0B988}37%{color:#C9956B}50%{color:#E8C9A0}62%{color:#D4A574}75%{color:#B79B86}87%{color:#C29E80}100%{color:#B79B86}}
-@keyframes navGlow{0%,100%{box-shadow:0 0 10px 2px rgba(183,155,134,.22)}25%{box-shadow:0 0 26px 6px rgba(212,165,116,.45)}50%{box-shadow:0 0 18px 4px rgba(224,185,136,.35)}75%{box-shadow:0 0 24px 5px rgba(201,149,107,.40)}}
-@keyframes navGlowWave{0%,15%{box-shadow:0 0 0 0 rgba(212,165,116,0)}25%{box-shadow:0 0 18px 3px rgba(212,165,116,.35)}35%{box-shadow:0 0 12px 2px rgba(224,185,136,.25)}50%,100%{box-shadow:0 0 0 0 rgba(212,165,116,0)}}
-@keyframes backShine{0%{color:var(--beige-dark)}25%{color:#D4A574}50%{color:#E0B988}75%{color:#C29E80}100%{color:var(--beige-dark)}}
+
+/* Динамика — среднее за 7 дней */
+.trend-block{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:24px 20px;margin-bottom:20px;box-shadow:var(--shadow-xs)}
+.trend-block h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:20px}
+.trend-avg-wrap{display:flex;align-items:center;gap:24px}
+.ta-ring{width:90px;min-width:90px;height:90px;position:relative}
+.ta-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ta-ring .ring-bg{fill:none;stroke:var(--bg2);stroke-width:8}
+.ta-ring .ring-fg{fill:none;stroke:url(#tGr);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease}
+.ta-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--text)}
+.ta-text{flex:1;min-width:0}
+.ta-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3}
+.ta-sub{font-size:13px;color:var(--text3);line-height:1.5}
+.ta-empty{text-align:center;padding:20px 0;color:var(--text3);font-size:13px;line-height:1.6}
+
+/* === АНИМАЦИИ === */
 @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 @keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.nav-item[data-tab="consult"] .nav-ico{animation-delay:0s,0s}
-.nav-item[data-tab="recom"] .nav-ico{animation-delay:1s,1s}
-.nav-item[data-tab="results"] .nav-ico{animation-delay:2s,2s}
-.nav-item[data-tab="diary"] .nav-ico{animation-delay:3s,3s}
-@media(min-width:900px){body{background:var(--bg3)}.top-bar{left:50%;right:auto;transform:translateX(-50%);width:820px;padding:0 32px;height:64px}.screens{left:50%;right:auto;transform:translateX(-50%);width:820px}.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:820px;height:76px}}
+
+/* Адаптив */
+@media(min-width:900px){
+  body{background:var(--bg3)}
+  .top-bar{left:50%;right:auto;transform:translateX(-50%);width:820px;padding:0 32px;height:64px}
+  .screens{left:50%;right:auto;transform:translateX(-50%);width:820px}
+  .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:820px;height:76px}
+}
 </style>
 </head>
 <body>
 
-<svg style="position:absolute;width:0;height:0"><defs><linearGradient id="rGr" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#A6876F"/><stop offset="50%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B79B86"/></linearGradient></defs></svg>
+<!-- Градиенты для SVG-колец -->
+<svg style="position:absolute;width:0;height:0">
+  <defs>
+    <linearGradient id="rGr" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A6876F"/><stop offset="50%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B79B86"/>
+    </linearGradient>
+    <linearGradient id="tGr" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C47890"/><stop offset="50%" stop-color="#D8A0B4"/><stop offset="100%" stop-color="#A85A74"/>
+    </linearGradient>
+  </defs>
+</svg>
 
+<!-- ВЕРХНЯЯ ПАНЕЛЬ -->
 <div class="top-bar">
   <a href="https://betacourse.tilda.ws/" class="back-btn">←</a>
-  <div class="top-bar-title">ИИ Кабинет</div>
-  <div class="top-bar-ai"><span class="ai-dot"></span>Елизавета</div>
+  <div class="top-bar-title" id="topTitle">ИИ Кабинет</div>
+  <div class="top-bar-badge badge-chat" id="topBadge">
+    <span class="ai-dot"></span>
+    <span id="topBadgeText">Елизавета</span>
+  </div>
 </div>
 
+<!-- ЭКРАНЫ -->
 <div class="screens">
+
+  <!-- Чат с Елизаветой -->
   <div class="screen active" id="s-consult">
     <div class="chat-wrap">
       <div class="chat-messages" id="consultMsgs">
@@ -232,6 +298,23 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
+  <!-- Практика -->
+  <div class="screen" id="s-practice">
+    <div class="chat-wrap">
+      <div class="chat-messages" id="practiceMsgs">
+        <div class="chat-msg cm-ai">
+          <div class="cm-av">📝</div>
+          <div class="cm-bub">Здравствуйте, <span id="practiceUserName"></span>! Здесь вы можете сдать практическое задание. Опишите, что вы сделали, какие выводы сделали, или задайте вопрос по практике.</div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="practiceInput" type="text" placeholder="Опишите вашу практику..." onkeydown="if(event.key==='Enter')sendPracticeMsg()">
+        <button class="chat-send" onclick="sendPracticeMsg()">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Рекомендации -->
   <div class="screen" id="s-recom">
     <div class="pad">
       <div class="section-tag">ИИ Аналитика</div>
@@ -246,20 +329,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
-  <div class="screen" id="s-results">
-    <div class="pad">
-      <div class="section-tag">Память ИИ</div>
-      <h2 class="sh2">Результаты <span class="grad">тестов</span></h2>
-      <p class="sp">Здесь сохраняются все ваши пройденные тесты.</p>
-      <div id="resultsList"></div>
-      <div id="resultsEmpty" class="empty-state">
-        <div class="es-ico">📋</div>
-        <h4>Нет пройденных тестов</h4>
-        <p>Напишите «пройти тест» в чате, чтобы начать.</p>
-      </div>
-    </div>
-  </div>
-
+  <!-- Прохождение тестов (скрытый, открывается из чата) -->
   <div class="screen" id="s-tests">
     <div class="pad" id="testsListPad">
       <div class="section-tag">Диагностика</div>
@@ -290,11 +360,13 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
+  <!-- Дневник состояния -->
   <div class="screen" id="s-diary">
     <div class="pad">
       <div class="section-tag">Аналитика</div>
       <h2 class="sh2">Дневник <span class="grad">состояния</span></h2>
       <p class="sp">Показатели на основе истории ваших сообщений.</p>
+
       <div class="diary-hero">
         <div class="dh-orb dh-o1"></div>
         <div class="status-ring">
@@ -304,62 +376,144 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
         <h3 id="svTitle">Загрузка...</h3>
         <p id="svDesc">Елизавета анализирует ваши данные</p>
       </div>
+
       <div class="metrics-grid">
-        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">😊</span><span class="mc-label">Настроение</span></div></div><div class="mc-val" id="moodVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="moodBar" style="width:0%"></div></div></div>
-        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">⚡</span><span class="mc-label">Энергия</span></div></div><div class="mc-val" id="energyVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="energyBar" style="width:0%"></div></div></div>
-        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">🔥</span><span class="mc-label">Стресс</span></div></div><div class="mc-val" id="stressVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="stressBar" style="width:0%"></div></div></div>
-        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">💪</span><span class="mc-label">Уверенность</span></div></div><div class="mc-val" id="confVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="confBar" style="width:0%"></div></div></div>
+        <div class="metric-card">
+          <div class="mc-head"><div class="mc-left"><span class="mc-ico">😊</span><span class="mc-label">Настроение</span></div></div>
+          <div class="mc-val" id="moodVal">—</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="moodBar" style="width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-head"><div class="mc-left"><span class="mc-ico">⚡</span><span class="mc-label">Энергия</span></div></div>
+          <div class="mc-val" id="energyVal">—</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="energyBar" style="width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-head"><div class="mc-left"><span class="mc-ico">🔥</span><span class="mc-label">Стресс</span></div></div>
+          <div class="mc-val" id="stressVal">—</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="stressBar" style="width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-head"><div class="mc-left"><span class="mc-ico">💪</span><span class="mc-label">Уверенность</span></div></div>
+          <div class="mc-val" id="confVal">—</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="confBar" style="width:0%"></div></div>
+        </div>
       </div>
+
+      <!-- Динамика: только среднее за 7 дней -->
       <div class="trend-block">
-        <h4>📈 Динамика (история)</h4>
-        <div class="trend-chart" id="trendChart">
-          <div class="tc-grid"><div class="tc-grid-line"></div><div class="tc-grid-line"></div><div class="tc-grid-line"></div><div class="tc-grid-line"></div></div>
+        <h4>📈 Динамика</h4>
+        <div id="trendContent">
+          <div class="ta-empty">Загрузка данных...</div>
         </div>
       </div>
     </div>
   </div>
+
 </div>
 
+<!-- НИЖНЯЯ НАВИГАЦИЯ -->
 <div class="bottom-nav">
   <div class="nav-item active" data-tab="consult" onclick="goTab('consult')">
-    <div class="nav-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/></svg></div>
+    <div class="nav-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/></svg>
+    </div>
     <div class="nav-lbl">Чат</div>
   </div>
+  <div class="nav-item" data-tab="practice" onclick="goTab('practice')">
+    <div class="nav-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg>
+    </div>
+    <div class="nav-lbl">Практика</div>
+  </div>
   <div class="nav-item" data-tab="recom" onclick="goTab('recom')">
-    <div class="nav-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg></div>
+    <div class="nav-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg>
+    </div>
     <div class="nav-lbl">Реком.</div>
   </div>
-  <div class="nav-item" data-tab="results" onclick="goTab('results')">
-    <div class="nav-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6M9 9h6M9 13h3"/><path d="M19 4v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg></div>
-    <div class="nav-lbl">Тесты</div>
-  </div>
   <div class="nav-item" data-tab="diary" onclick="goTab('diary')">
-    <div class="nav-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg></div>
+    <div class="nav-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg>
+    </div>
     <div class="nav-lbl">Дневник</div>
   </div>
 </div>
 
 <script>
+/* === ДАННЫЕ ТЕСТОВ === */
 const tests = [
-  {name:'Шкала тревожности', ico:'😰', info:'5 вопросов · 3 мин', questions:[{q:'Я чувствую спокойствие',opts:['Почти никогда','Иногда','Часто','Почти всегда'],correct:3}], type:'simple', results:{low:{ico:'✅',title:'Низкая тревожность',desc:'Ваш уровень тревоги в норме.'},mid:{ico:'⚡',title:'Умеренная тревожность',desc:'Есть признаки тревожности.'},high:{ico:'🔴',title:'Высокая тревожность',desc:'Рекомендуем практики.'}}},
-  {name:'Опросник выгорания', ico:'😴', info:'5 вопросов · 3 мин', questions:[{q:'Я чувствую истощение',opts:['Никогда','Редко','Иногда','Часто'],correct:0}], type:'simple', results:{low:{ico:'✅',title:'Низкий риск',desc:'Вы справляетесь.'},mid:{ico:'⚡',title:'Умеренный риск',desc:'Признаки утомления.'},high:{ico:'🔴',title:'Высокий риск',desc:'Обратите внимание.'}}}
+  {name:'Шкала тревожности', ico:'😰', info:'5 вопросов · 3 мин', questions:[
+    {q:'Я чувствую спокойствие',opts:['Почти никогда','Иногда','Часто','Почти всегда'],correct:3},
+    {q:'Мне трудно расслабиться',opts:['Почти всегда','Часто','Иногда','Почти никогда'],correct:3},
+    {q:'Я чувствую нервозность',opts:['Почти всегда','Часто','Иногда','Почти никогда'],correct:3},
+    {q:'Я беспокоюсь о возможных неприятностях',opts:['Очень часто','Часто','Иногда','Редко'],correct:3},
+    {q:'Я чувствую себя спокойным и уравновешенным',opts:['Почти никогда','Иногда','Часто','Почти всегда'],correct:3}
+  ], type:'simple', results:{low:{ico:'✅',title:'Низкая тревожность',desc:'Ваш уровень тревоги в норме.'},mid:{ico:'⚡',title:'Умеренная тревожность',desc:'Есть признаки тревожности.'},high:{ico:'🔴',title:'Высокая тревожность',desc:'Рекомендуем практики.'}}},
+  {name:'Опросник выгорания', ico:'😴', info:'5 вопросов · 3 мин', questions:[
+    {q:'Я чувствую истощение',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
+    {q:'Утром мне не хочется вставать',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
+    {q:'Я чувствую, что работаю слишком много',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
+    {q:'Мне стало труднее справляться с задачами',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
+    {q:'Я чувствую равнодушие к работе',opts:['Никогда','Редко','Иногда','Часто'],correct:0}
+  ], type:'simple', results:{low:{ico:'✅',title:'Низкий риск',desc:'Вы справляетесь хорошо.'},mid:{ico:'⚡',title:'Умеренный риск',desc:'Есть признаки утомления.'},high:{ico:'🔴',title:'Высокий риск',desc:'Обратите внимание на отдых.'}}}
 ];
 
 let curTest = -1, curQ = 0, answers = [];
+
+/* Имена пользователей в приветствиях */
 document.getElementById('userName').textContent = CURRENT_USER.name;
+document.getElementById('practiceUserName').textContent = CURRENT_USER.name;
+
+/* === НАВИГАЦИЯ ПО ВКЛАДКАМ === */
+const tabTitles = {
+  consult: 'ИИ Кабинет',
+  practice: 'Практика',
+  recom: 'Рекомендации',
+  diary: 'Дневник состояния',
+  tests: 'Тесты'
+};
+
+const tabBadge = {
+  consult: { text: 'Елизавета', cls: 'badge-chat' },
+  practice: { text: 'Практика', cls: 'badge-practice' },
+  recom: null,
+  diary: null,
+  tests: null
+};
 
 function goTab(name) {
+  /* Скрываем все экраны */
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('s-' + name).classList.add('active');
+
+  /* Показываем нужный экран */
+  const screen = document.getElementById('s-' + name);
+  if (screen) screen.classList.add('active');
+
+  /* Подсвечиваем нужную кнопку навигации */
   const nav = document.querySelector('.nav-item[data-tab="' + name + '"]');
   if (nav) nav.classList.add('active');
+
+  /* Обновляем верхнюю панель */
+  document.getElementById('topTitle').textContent = tabTitles[name] || 'ИИ Кабинет';
+  const badge = document.getElementById('topBadge');
+  const badgeInfo = tabBadge[name];
+  if (badgeInfo) {
+    badge.style.display = 'flex';
+    badge.className = 'top-bar-badge ' + badgeInfo.cls;
+    document.getElementById('topBadgeText').textContent = badgeInfo.text;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  /* Загружаем данные при переходе */
   if (name === 'diary') loadDiaryData();
-  if (name === 'results') loadTests();
   if (name === 'tests') renderTestList();
   if (name === 'recom') loadRecommendations();
 }
 
+/* === ЧАТ С ЕЛИЗАВЕТОЙ === */
 async function loadChatHistory() {
   try {
     const res = await fetch(API_URL + '/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
@@ -390,11 +544,7 @@ async function sendMsg() {
   }
 
   const tid = 'typ-' + Date.now();
-  const msgs = document.getElementById('consultMsgs');
-  const td = document.createElement('div');
-  td.className = 'chat-msg cm-ai'; td.id = tid;
-  td.innerHTML = '<div class="cm-av">🤖</div><div class="cm-bub"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
-  msgs.appendChild(td); msgs.scrollTop = msgs.scrollHeight;
+  showTyping('consultMsgs', tid);
 
   let replyText = '';
   try {
@@ -405,18 +555,64 @@ async function sendMsg() {
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.details || errData.error || `Сервер вернул статус ${res.status}`);
+      throw new Error(errData.details || errData.error || 'Сервер вернул статус ' + res.status);
     }
     const data = await res.json();
     replyText = data.reply || 'ИИ вернул пустой ответ. Попробуйте еще раз.';
   } catch (e) {
-    console.error('Детали ошибки:', e);
     replyText = '⚠️ Ошибка сервера: ' + e.message;
   }
   document.getElementById(tid).remove();
   addBubble('consultMsgs', 'ai', escHtml(replyText).replace(/\n/g, '<br>'));
 }
 
+/* === ЧАТ ПРАКТИКИ === */
+async function loadPracticeHistory() {
+  try {
+    const res = await fetch(API_URL + '/practice/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.history && data.history.length > 0) {
+      const msgs = document.getElementById('practiceMsgs');
+      msgs.innerHTML = '';
+      data.history.forEach(m => {
+        addBubble('practiceMsgs', (m.role === 'assistant' ? 'ai' : 'user'), escHtml(m.content).replace(/\n/g, '<br>'));
+      });
+    }
+  } catch (e) { console.error('Ошибка загрузки практики:', e); }
+}
+
+async function sendPracticeMsg() {
+  const input = document.getElementById('practiceInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addBubble('practiceMsgs', 'user', escHtml(text));
+
+  const tid = 'ptyp-' + Date.now();
+  showTyping('practiceMsgs', tid, '📝');
+
+  let replyText = '';
+  try {
+    const res = await fetch(API_URL + '/practice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...CURRENT_USER, message: text })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.details || errData.error || 'Сервер вернул статус ' + res.status);
+    }
+    const data = await res.json();
+    replyText = data.reply || 'Пустой ответ. Попробуйте еще раз.';
+  } catch (e) {
+    replyText = '⚠️ Ошибка: ' + e.message;
+  }
+  document.getElementById(tid).remove();
+  addBubble('practiceMsgs', 'ai', escHtml(replyText).replace(/\n/g, '<br>'));
+}
+
+/* === ОБЩИЕ ФУНКЦИИ ЧАТА === */
 function escHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -426,29 +622,24 @@ function addBubble(cid, type, html) {
   const d = document.createElement('div');
   d.className = 'chat-msg cm-' + type;
   const userLetter = escHtml((CURRENT_USER.name || 'Вы').charAt(0).toUpperCase());
-  d.innerHTML = '<div class="cm-av">' + (type === 'ai' ? '🤖' : userLetter) + '</div><div class="cm-bub">' + html + '</div>';
-  m.appendChild(d); m.scrollTop = m.scrollHeight;
+  /* Определяем аватар: для практики ИИ использует 📝 */
+  const aiAvatar = cid === 'practiceMsgs' ? '📝' : '🤖';
+  d.innerHTML = '<div class="cm-av">' + (type === 'ai' ? aiAvatar : userLetter) + '</div><div class="cm-bub">' + html + '</div>';
+  m.appendChild(d);
+  m.scrollTop = m.scrollHeight;
 }
 
-async function loadTests() {
-  try {
-    const res = await fetch(API_URL + '/tests?tilda_user_id=' + CURRENT_USER.tilda_user_id);
-    const data = await res.json();
-    const el = document.getElementById('resultsList');
-    const empty = document.getElementById('resultsEmpty');
-    el.innerHTML = '';
-    if (data.tests && data.tests.length > 0) {
-      empty.style.display = 'none';
-      data.tests.forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'test-item ti-done';
-        div.innerHTML = '<div class="ti-ico">✅</div><div class="ti-info"><h4>' + escHtml(t.test_name) + '</h4><p>Результат: ' + escHtml(t.interpretation) + '</p></div><span class="ti-check">✓</span>';
-        el.appendChild(div);
-      });
-    } else { empty.style.display = 'block'; }
-  } catch(e) { console.error(e); }
+function showTyping(cid, tid, avatar) {
+  const msgs = document.getElementById(cid);
+  const td = document.createElement('div');
+  td.className = 'chat-msg cm-ai';
+  td.id = tid;
+  td.innerHTML = '<div class="cm-av">' + (avatar || '🤖') + '</div><div class="cm-bub"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(td);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
+/* === ТЕСТЫ === */
 function renderTestList() {
   const el = document.getElementById('testList');
   el.innerHTML = '';
@@ -471,15 +662,22 @@ function startTest(idx) {
 
 function renderQ() {
   const t = tests[curTest], q = t.questions[curQ], total = t.questions.length;
-  document.getElementById('tpFill').style.width = Math.round((curQ / total) * 100) + '%';
+  const pct = Math.round((curQ / total) * 100);
+  document.getElementById('tpFill').style.width = pct + '%';
   document.getElementById('tpStep').textContent = 'Вопрос ' + (curQ + 1) + ' из ' + total;
+  document.getElementById('tpQNum').textContent = 'Вопрос ' + (curQ + 1);
   document.getElementById('tpQuestion').textContent = q.q;
-  const opts = document.getElementById('tpOptions'); opts.innerHTML = '';
+  const opts = document.getElementById('tpOptions');
+  opts.innerHTML = '';
   q.opts.forEach((o, i) => {
     const btn = document.createElement('button');
     btn.className = 'tp-opt' + (answers[curQ] === i ? ' selected' : '');
     btn.textContent = o;
-    btn.onclick = () => { answers[curQ] = i; document.querySelectorAll('.tp-opt').forEach((x, j) => x.classList.toggle('selected', j === i)); document.getElementById('tpNext').disabled = false; };
+    btn.onclick = () => {
+      answers[curQ] = i;
+      document.querySelectorAll('.tp-opt').forEach((x, j) => x.classList.toggle('selected', j === i));
+      document.getElementById('tpNext').disabled = false;
+    };
     opts.appendChild(btn);
   });
   document.getElementById('tpBack').style.visibility = curQ === 0 ? 'hidden' : 'visible';
@@ -490,7 +688,8 @@ function testNext() { if (curQ < tests[curTest].questions.length - 1) { curQ++; 
 function testPrev() { if (curQ > 0) { curQ--; renderQ(); } }
 
 async function finishTest() {
-  const t = tests[curTest]; let score = 0;
+  const t = tests[curTest];
+  let score = 0;
   answers.forEach((a, i) => { if (a === t.questions[i].correct) score++; });
   const level = score >= 4 ? 'low' : score >= 2 ? 'mid' : 'high';
   const res = t.results[level];
@@ -516,6 +715,7 @@ function backToChat() {
   goTab('consult');
 }
 
+/* === ДНЕВНИК СОСТОЯНИЯ === */
 async function loadDiaryData() {
   try {
     const res = await fetch(API_URL + '/state?tilda_user_id=' + CURRENT_USER.tilda_user_id);
@@ -529,14 +729,27 @@ async function loadDiaryData() {
     const mood = state.mood, energy = state.energy, stress = state.stress, confidence = state.confidence;
     const known = [mood, energy, stress == null ? null : 100 - stress, confidence].filter(v => v != null);
     const overall = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : 0;
+
+    /* Главное кольцо */
     document.getElementById('ringFg').style.strokeDashoffset = 314.16 - (314.16 * overall / 100);
     document.getElementById('svNum').textContent = overall;
     document.getElementById('svTitle').textContent = overall >= 70 ? 'Хорошее состояние' : 'Требует внимания';
     document.getElementById('svDesc').textContent = state.note || 'Данные обновлены';
-    setMetric('mood', mood); setMetric('energy', energy);
-    setMetric('stress', stress); setMetric('conf', confidence);
-    loadTrendChart();
-  } catch (e) { console.error(e); }
+
+    /* Метрики (null → прочерк, без выдуманных 50) */
+    setMetric('mood', mood);
+    setMetric('energy', energy);
+    setMetric('stress', stress);
+    setMetric('conf', confidence);
+
+    /* Загружаем динамику за 7 дней */
+    loadTrendAverage();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('svNum').textContent = '—';
+    document.getElementById('svTitle').textContent = 'Ошибка загрузки';
+    document.getElementById('svDesc').textContent = 'Не удалось получить данные.';
+  }
 }
 
 function setMetric(prefix, value) {
@@ -546,27 +759,87 @@ function setMetric(prefix, value) {
   else { valEl.textContent = value + '%'; barEl.style.width = value + '%'; }
 }
 
-async function loadTrendChart() {
+async function loadTrendAverage() {
+  const container = document.getElementById('trendContent');
   try {
     const res = await fetch(API_URL + '/state/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
     const data = await res.json();
-    const chart = document.getElementById('trendChart');
-    chart.querySelectorAll('.trend-day').forEach(e => e.remove());
-    if (data.history && data.history.length > 0) {
-      data.history.forEach((h, i) => {
-        const known = [h.mood, h.energy, h.stress == null ? null : 100 - h.stress, h.confidence].filter(v => v != null);
-        if (!known.length) return;
-        const overall = Math.round(known.reduce((a, b) => a + b, 0) / known.length);
-        const dateLabel = new Date((h.created_at || '').replace(' ', 'T') + 'Z').toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-        const div = document.createElement('div');
-        div.className = 'trend-day' + (i === data.history.length - 1 ? ' today' : '');
-        div.innerHTML = '<div class="td-val">' + overall + '</div><div class="td-bar-wrap"><div class="td-bar" style="height:' + Math.max(4, overall) + '%"></div></div><div class="td-label">' + dateLabel + '</div>';
-        chart.appendChild(div);
-      });
+
+    if (!data.history || data.history.length === 0) {
+      container.innerHTML = '<div class="ta-empty">Недостаточно данных для отображения динамики. Поговорите с Елизаветой, чтобы появились записи.</div>';
+      return;
     }
-  } catch(e) { console.error(e); }
+
+    /* Фильтруем записи за последние 7 дней */
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recentEntries = data.history.filter(h => {
+      const d = new Date((h.created_at || '').replace(' ', 'T') + 'Z');
+      return d >= weekAgo;
+    });
+
+    if (recentEntries.length === 0) {
+      container.innerHTML = '<div class="ta-empty">За последние 7 дней нет записей. Продолжайте общение с Елизаветой.</div>';
+      return;
+    }
+
+    /* Считаем среднее общее состояние (только по известным метрикам) */
+    let totalOverall = 0, counted = 0;
+    recentEntries.forEach(h => {
+      const known = [h.mood, h.energy, h.stress == null ? null : 100 - h.stress, h.confidence].filter(v => v != null);
+      if (!known.length) return;
+      totalOverall += known.reduce((a, b) => a + b, 0) / known.length;
+      counted++;
+    });
+    if (!counted) {
+      container.innerHTML = '<div class="ta-empty">За последние 7 дней нет записей. Продолжайте общение с Елизаветой.</div>';
+      return;
+    }
+    const avgOverall = Math.round(totalOverall / counted);
+
+    /* Определяем описание */
+    let statusText = '';
+    if (avgOverall >= 80) statusText = 'Отличное состояние, вы в прекрасной форме';
+    else if (avgOverall >= 65) statusText = 'Хорошее состояние, продолжайте в том же духе';
+    else if (avgOverall >= 50) statusText = 'Среднее состояние, есть пространство для роста';
+    else if (avgOverall >= 35) statusText = 'Требует внимания, рекомендуем больше практиковать';
+    else statusText = 'Низкое состояние, обратитесь к Елизавете за поддержкой';
+
+    const circumference = 2 * Math.PI * 38; /* r=38 для кольца 90px */
+
+    container.innerHTML =
+      '<div class="trend-avg-wrap">' +
+        '<div class="ta-ring">' +
+          '<svg viewBox="0 0 90 90">' +
+            '<circle class="ring-bg" cx="45" cy="45" r="38"/>' +
+            '<circle class="ring-fg" id="trendRingFg" cx="45" cy="45" r="38" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="' + circumference.toFixed(2) + '"/>' +
+          '</svg>' +
+          '<div class="ta-val" id="trendAvgVal">' + avgOverall + '</div>' +
+        '</div>' +
+        '<div class="ta-text">' +
+          '<div class="ta-title">Среднее общее состояние</div>' +
+          '<div class="ta-sub">за последние 7 дней</div>' +
+          '<div class="ta-sub" style="margin-top:8px;font-weight:600;color:var(--text)">' + statusText + '</div>' +
+        '</div>' +
+      '</div>';
+
+    /* Анимируем кольцо после рендера */
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const ring = document.getElementById('trendRingFg');
+        if (ring) {
+          ring.style.strokeDashoffset = circumference - (circumference * avgOverall / 100);
+        }
+      });
+    });
+
+  } catch(e) {
+    console.error(e);
+    container.innerHTML = '<div class="ta-empty">Не удалось загрузить динамику.</div>';
+  }
 }
 
+/* === РЕКОМЕНДАЦИИ === */
 async function loadRecommendations() {
   try {
     const res = await fetch(API_URL + '/recommendations?tilda_user_id=' + CURRENT_USER.tilda_user_id);
@@ -583,7 +856,9 @@ async function loadRecommendations() {
         div.innerHTML = '<h4>💡 ' + escHtml(r.category) + '</h4><p>' + escHtml(r.text) + '</p><div class="recom-date">Создано: ' + dateLabel + '</div>';
         list.appendChild(div);
       });
-    } else { empty.style.display = 'block'; }
+    } else {
+      empty.style.display = 'block';
+    }
   } catch(e) { console.error(e); }
 }
 </script>

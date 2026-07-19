@@ -58,3 +58,12 @@ CREATE TABLE IF NOT EXISTS recommendations (
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_recom_user ON recommendations(user_id, id);
+
+CREATE TABLE IF NOT EXISTS practice_messages (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL REFERENCES users(tilda_user_id),
+  role       TEXT NOT NULL CHECK (role IN ('user','assistant')),
+  content    TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_practice_user ON practice_messages(user_id, id);
