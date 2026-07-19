@@ -46,6 +46,18 @@
   let testScores = {};
 
   async function initUserProfile() {
+    // Tilda подгружает member-объект асинхронно — ждём его до 6 секунд,
+    // иначе каждый браузер получает своего «гостя» и память не синхронизируется
+    for (let i = 0; i < 20; i++) {
+      if (window.tilda_member && (window.tilda_member.user_id || window.tilda_member.id)) break;
+      if (String(CURRENT_USER.tilda_user_id).indexOf('guest-') !== 0) break; // юзер уже известен (URL/localStorage)
+      await new Promise(r => setTimeout(r, 300));
+    }
+    CURRENT_USER = getCurrentUser();
+    var un = document.getElementById('userName');
+    var pn = document.getElementById('practiceUserName');
+    if (un) un.textContent = CURRENT_USER.name;
+    if (pn) pn.textContent = CURRENT_USER.name;
     try {
       await fetch(API_URL + '/api/user/init', {
         method: 'POST',
