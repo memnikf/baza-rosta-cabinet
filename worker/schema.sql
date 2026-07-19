@@ -39,3 +39,22 @@ CREATE TABLE IF NOT EXISTS diary (
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_diary_user ON diary(user_id, id);
+
+CREATE TABLE IF NOT EXISTS tests (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id        TEXT NOT NULL REFERENCES users(tilda_user_id),
+  test_name      TEXT NOT NULL,
+  score          INTEGER,
+  interpretation TEXT DEFAULT '',
+  created_at     TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tests_user ON tests(user_id, id);
+
+CREATE TABLE IF NOT EXISTS recommendations (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL REFERENCES users(tilda_user_id),
+  category   TEXT DEFAULT 'Совет',
+  text       TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_recom_user ON recommendations(user_id, id);

@@ -13,6 +13,9 @@
  *   GET  /history         — история переписки (восстановление чата при входе)
  *   GET  /state           — последний замер состояния (для дневника)
  *   GET  /state/history   — последние 7 замеров (для графика динамики)
+ *   POST /test            — сохранить результат пройденного теста
+ *   GET  /tests           — список пройденных тестов
+ *   GET  /recommendations — накопленные рекомендации от ИИ
  */
 
 const SYSTEM_PROMPT = `Ты — "База роста AI", премиальный цифровой психолог и персональный помощник по развитию личности.
@@ -288,6 +291,9 @@ export default {
       if (url.pathname === '/history' && request.method === 'GET') return await chatHistory(url, env);
       if (url.pathname === '/state' && request.method === 'GET') return await state(url, env);
       if (url.pathname === '/state/history' && request.method === 'GET') return await stateHistory(url, env);
+      if (url.pathname === '/test' && request.method === 'POST') return await testSave(request, env);
+      if (url.pathname === '/tests' && request.method === 'GET') return await testsList(url, env);
+      if (url.pathname === '/recommendations' && request.method === 'GET') return await recomList(url, env);
       return json({ error: 'not found' }, 404);
     } catch (e) {
       return json({ error: 'server error', detail: String(e && e.message || e) }, 500);
@@ -396,6 +402,7 @@ async function chat(request, env) {
       await env.DB.prepare('INSERT INTO diary (user_id, entry_json) VALUES (?,?)')
         .bind(uid, JSON.stringify(hidden.diary_entry)).run();
     }
+    await saveRecommendations(env, uid, hidden.recommendations);
   }
 
   return json({ reply });
@@ -535,4 +542,56 @@ async function stateHistory(url, env) {
      FROM states WHERE user_id=? ORDER BY id DESC LIMIT 7`
   ).bind(uid).all();
   return json({ history: (res.results || []).reverse() });
+}
+
+/* ================= ТЕСТЫ ================= */
+
+async function testSave(request, env) {
+  const body = await request.json();
+  const uid = await upsertUser(env, body);
+  const name = String(body.test_name || '').trim().slice(0, 200);
+  if (!uid || !name) return json({ error: 'tilda_user_id and test_name required' }, 400);
+  const score = Number.isFinite(Number(body.score)) ? Math.round(Number(body.score)) : null;
+  await env.DB.prepare(
+    'INSERT INTO tests (user_id, test_name, score, interpretation) VALUES (?,?,?,?)'
+  ).bind(uid, name, score, String(body.interpretation || '').slice(0, 500)).run();
+  return json({ ok: true });
+}
+
+async function testsList(url, env) {
+  const uid = String(url.searchParams.get('tilda_user_id') || '').trim();
+  if (!uid) return json({ error: 'tilda_user_id required' }, 400);
+  const res = await env.DB.prepare(
+    'SELECT test_name, score, interpretation, created_at FROM tests WHERE user_id=? ORDER BY id DESC LIMIT 50'
+  ).bind(uid).all();
+  return json({ tests: res.results || [] });
+}
+
+/* ================= РЕКОМЕНДАЦИИ ================= */
+
+async function saveRecommendations(env, uid, recs) {
+  const list = (Array.isArray(recs) ? recs : [])
+    .filter(x => typeof x === 'string' && x.trim())
+    .map(x => x.trim().slice(0, 500));
+  if (!list.length) return;
+  // не плодим дубли: пропускаем тексты, уже сохранённые этому пользователю
+  const existing = await env.DB.prepare(
+    'SELECT text FROM recommendations WHERE user_id=? ORDER BY id DESC LIMIT 100'
+  ).bind(uid).all();
+  const seen = new Set((existing.results || []).map(r => r.text));
+  for (const text of list) {
+    if (seen.has(text)) continue;
+    await env.DB.prepare(
+      'INSERT INTO recommendations (user_id, category, text) VALUES (?,?,?)'
+    ).bind(uid, 'Совет от Елизаветы', text).run();
+  }
+}
+
+async function recomList(url, env) {
+  const uid = String(url.searchParams.get('tilda_user_id') || '').trim();
+  if (!uid) return json({ error: 'tilda_user_id required' }, 400);
+  const res = await env.DB.prepare(
+    'SELECT category, text, created_at FROM recommendations WHERE user_id=? ORDER BY id DESC LIMIT 30'
+  ).bind(uid).all();
+  return json({ recommendations: res.results || [] });
 }
