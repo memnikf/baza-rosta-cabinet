@@ -499,14 +499,15 @@ async function saveMemory(env, uid, user, upd) {
 async function saveState(env, uid, lastState, hidden) {
   const su = hidden.state_update || {};
   const FIELDS = ['mood', 'energy', 'stress', 'confidence', 'motivation', 'happiness'];
+  const provided = FIELDS.map(f => num(su[f])).filter(v => v !== null);
+  // Модель иногда эхом возвращает шаблон из промпта со сплошными нулями — это не замер
+  if (!provided.length || provided.every(v => v === 0)) return;
+
   const fresh = {};
-  let hasNew = false;
   for (const f of FIELDS) {
     const v = num(su[f]);
-    if (v !== null) { fresh[f] = v; hasNew = true; }
-    else fresh[f] = lastState ? lastState[f] : null;  // null от модели → берём прошлое значение
+    fresh[f] = v !== null ? v : (lastState ? lastState[f] : null);  // null от модели → берём прошлое значение
   }
-  if (!hasNew) return; // модель ничего не оценила — замер не создаём
 
   const de = hidden.diary_entry || {};
   const note =

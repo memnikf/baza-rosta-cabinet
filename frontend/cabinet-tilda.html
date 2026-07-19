@@ -526,18 +526,24 @@ async function loadDiaryData() {
       document.getElementById('svDesc').textContent = 'Поговорите с Елизаветой, чтобы появились метрики.';
       return;
     }
-    const mood = state.mood || 50, energy = state.energy || 50, stress = state.stress || 50, confidence = state.confidence || 50;
-    const overall = Math.round((mood + energy + (100 - stress) + confidence) / 4);
+    const mood = state.mood, energy = state.energy, stress = state.stress, confidence = state.confidence;
+    const known = [mood, energy, stress == null ? null : 100 - stress, confidence].filter(v => v != null);
+    const overall = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : 0;
     document.getElementById('ringFg').style.strokeDashoffset = 314.16 - (314.16 * overall / 100);
     document.getElementById('svNum').textContent = overall;
     document.getElementById('svTitle').textContent = overall >= 70 ? 'Хорошее состояние' : 'Требует внимания';
     document.getElementById('svDesc').textContent = state.note || 'Данные обновлены';
-    document.getElementById('moodVal').textContent = mood + '%'; document.getElementById('moodBar').style.width = mood + '%';
-    document.getElementById('energyVal').textContent = energy + '%'; document.getElementById('energyBar').style.width = energy + '%';
-    document.getElementById('stressVal').textContent = stress + '%'; document.getElementById('stressBar').style.width = stress + '%';
-    document.getElementById('confVal').textContent = confidence + '%'; document.getElementById('confBar').style.width = confidence + '%';
+    setMetric('mood', mood); setMetric('energy', energy);
+    setMetric('stress', stress); setMetric('conf', confidence);
     loadTrendChart();
   } catch (e) { console.error(e); }
+}
+
+function setMetric(prefix, value) {
+  const valEl = document.getElementById(prefix + 'Val');
+  const barEl = document.getElementById(prefix + 'Bar');
+  if (value == null) { valEl.textContent = '—'; barEl.style.width = '0%'; }
+  else { valEl.textContent = value + '%'; barEl.style.width = value + '%'; }
 }
 
 async function loadTrendChart() {
@@ -548,7 +554,9 @@ async function loadTrendChart() {
     chart.querySelectorAll('.trend-day').forEach(e => e.remove());
     if (data.history && data.history.length > 0) {
       data.history.forEach((h, i) => {
-        const overall = Math.round((h.mood + h.energy + (100-h.stress) + h.confidence) / 4);
+        const known = [h.mood, h.energy, h.stress == null ? null : 100 - h.stress, h.confidence].filter(v => v != null);
+        if (!known.length) return;
+        const overall = Math.round(known.reduce((a, b) => a + b, 0) / known.length);
         const dateLabel = new Date((h.created_at || '').replace(' ', 'T') + 'Z').toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
         const div = document.createElement('div');
         div.className = 'trend-day' + (i === data.history.length - 1 ? ' today' : '');
