@@ -75,26 +75,16 @@
   --ease:cubic-bezier(.22,.61,.36,1);--ease-out:cubic-bezier(.16,1,.3,1);
 }
 
-/* Цвета для каждой вкладки навигации */
-.nav-item[data-tab="consult"]{
-  --nav-c1:#E08A60;--nav-c2:#C96E42;--nav-glow:rgba(224,138,96,.35);--nav-muted:rgba(224,138,96,.12);
-}
-.nav-item[data-tab="practice"]{
-  --nav-c1:#5D9E7A;--nav-c2:#3E8560;--nav-glow:rgba(93,158,122,.35);--nav-muted:rgba(93,158,122,.12);
-}
-.nav-item[data-tab="recom"]{
-  --nav-c1:#D4A030;--nav-c2:#B8880E;--nav-glow:rgba(212,160,48,.35);--nav-muted:rgba(212,160,48,.12);
-}
-.nav-item[data-tab="diary"]{
-  --nav-c1:#C47890;--nav-c2:#A85A74;--nav-glow:rgba(196,120,144,.35);--nav-muted:rgba(196,120,144,.12);
-}
+.nav-item[data-tab="consult"]{--nav-c1:#E08A60;--nav-c2:#C96E42;--nav-glow:rgba(224,138,96,.35);--nav-muted:rgba(224,138,96,.12)}
+.nav-item[data-tab="practice"]{--nav-c1:#5D9E7A;--nav-c2:#3E8560;--nav-glow:rgba(93,158,122,.35);--nav-muted:rgba(93,158,122,.12)}
+.nav-item[data-tab="recom"]{--nav-c1:#D4A030;--nav-c2:#B8880E;--nav-glow:rgba(212,160,48,.35);--nav-muted:rgba(212,160,48,.12)}
+.nav-item[data-tab="diary"]{--nav-c1:#C47890;--nav-c2:#A85A74;--nav-glow:rgba(196,120,144,.35);--nav-muted:rgba(196,120,144,.12)}
 
 html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;background:var(--bg)}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text2);overflow:hidden;height:100vh;height:100dvh;line-height:1.65;user-select:none;-webkit-user-select:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.005em}
 a{text-decoration:none;color:inherit}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;transition:all .3s var(--ease)}
 
-/* === ВЕРХНЯЯ ПАНЕЛЬ === */
 .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--top-h);display:flex;align-items:center;gap:14px;padding:0 20px;background:rgba(255,255,255,.85);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-bottom:1px solid var(--card-border)}
 .back-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--card-border);font-size:18px;color:var(--beige-dark);transition:all .35s var(--ease);flex-shrink:0;box-shadow:var(--shadow-xs)}
 .back-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(183,155,134,.22);border-color:rgba(183,155,134,.3)}
@@ -104,13 +94,11 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .top-bar-badge.badge-practice{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 14px rgba(93,158,122,.3)}
 .top-bar-badge .ai-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:pdot 2.4s ease-in-out infinite}
 
-/* === ЭКРАНЫ === */
 .screens{position:fixed;top:var(--top-h);bottom:var(--bot-h);left:0;right:0;overflow:hidden}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .5s var(--ease),transform .5s var(--ease);-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg)}
 .screen::-webkit-scrollbar{display:none}
 .screen.active{opacity:1;transform:translateY(0);pointer-events:auto}
 
-/* === НИЖНЯЯ НАВИГАЦИЯ === */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--bot-h);display:flex;align-items:stretch;background:rgba(255,255,255,.92);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-top:1px solid var(--card-border);padding-bottom:env(safe-area-inset-bottom,0)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;color:var(--nav-c1);opacity:.4;transition:all .4s var(--ease);-webkit-tap-highlight-color:transparent}
 .nav-item .nav-ico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:50%;transition:all .4s var(--ease);background:var(--nav-muted)}
@@ -123,20 +111,17 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .nav-item::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2.5px;border-radius:0 0 4px 4px;background:linear-gradient(90deg,var(--nav-c1),var(--nav-c2));transform:scaleX(0);transition:transform .4s var(--ease)}
 .nav-item.active::before{transform:scaleX(1)}
 
-/* === ОБЩИЕ СТИЛИ КОНТЕНТА === */
 .pad{padding:28px 20px 48px}
 .section-tag{display:inline-block;padding:5px 16px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;margin-bottom:16px;background:var(--beige-soft);color:var(--beige-dark);border:1px solid rgba(183,155,134,.18)}
 .sh2{font-size:24px;font-weight:700;line-height:1.2;margin-bottom:12px;letter-spacing:-.025em;color:var(--text)}
 .sh2 .grad{background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sp{font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:24px;max-width:560px}
 
-/* === ПУСТОЕ СОСТОЯНИЕ === */
 .empty-state{text-align:center;padding:44px 20px;background:var(--beige-soft);border-radius:var(--radius-sm);border:1px solid rgba(183,155,134,.18);margin-top:12px}
 .empty-state .es-ico{font-size:44px;margin-bottom:14px}
 .empty-state h4{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
 .empty-state p{font-size:13px;color:var(--text3);max-width:300px;margin:0 auto;line-height:1.6}
 
-/* === ТЕСТЫ === */
 .test-item{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--card-border);margin-bottom:10px;cursor:pointer;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s var(--ease);box-shadow:var(--shadow-xs)}
 .test-item:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--card-border-hover)}
 .test-item .ti-ico{width:44px;height:44px;min-width:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--beige-soft)}
@@ -144,6 +129,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .test-item .ti-info h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .test-item .ti-info p{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .test-item .ti-arrow{color:var(--text4);font-size:18px;flex-shrink:0}
+
 .test-pass{display:none;padding:32px 20px 48px}
 .test-pass.active{display:block;animation:fadeUp .6s var(--ease-out) both}
 .tp-progress{margin-bottom:24px}
@@ -167,7 +153,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .tp-result h3{font-size:22px;font-weight:700;color:var(--text);margin-bottom:10px}
 .tr-score{font-size:44px;font-weight:700;background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
 
-/* === ЧАТ (общий) === */
 .chat-wrap{display:flex;flex-direction:column;height:100%}
 .chat-messages{flex:1;overflow-y:auto;padding:20px 16px 12px;scrollbar-width:none}
 .chat-messages::-webkit-scrollbar{display:none}
@@ -190,20 +175,17 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .chat-send{width:46px;height:46px;min-width:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--beige),var(--beige-dark));color:#fff;font-size:18px;flex-shrink:0;box-shadow:0 6px 16px rgba(183,155,134,.28);transition:all .3s var(--ease)}
 .chat-send:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 8px 22px rgba(183,155,134,.35)}
 
-/* Чат практики — зелёный акцент для пользовательских пузырей */
 #s-practice .chat-msg.cm-user .cm-bub{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 14px rgba(93,158,122,.25)}
 #s-practice .chat-msg.cm-ai .cm-av{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 12px rgba(93,158,122,.22)}
 #s-practice .chat-send{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 6px 16px rgba(93,158,122,.3)}
 #s-practice .chat-send:hover{box-shadow:0 8px 22px rgba(93,158,122,.4)}
 #s-practice .chat-input:focus{border-color:rgba(93,158,122,.4);box-shadow:0 0 0 4px rgba(93,158,122,.08)}
 
-/* === РЕКОМЕНДАЦИИ === */
 .recom-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px;margin-bottom:12px;box-shadow:var(--shadow-xs)}
 .recom-card h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4}
 .recom-card p{font-size:13px;color:var(--text3);line-height:1.6}
 .recom-date{font-size:11px;color:var(--text4);margin-top:12px;font-weight:600}
 
-/* === ДНЕВНИК === */
 .diary-hero{position:relative;padding:36px 24px 28px;text-align:center;overflow:hidden;border-radius:var(--radius);margin-bottom:20px;background:linear-gradient(165deg,var(--beige-soft),var(--beige-mist));border:1px solid rgba(183,155,134,.18)}
 .diary-hero .dh-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.32;pointer-events:none}
 .diary-hero .dh-o1{width:160px;height:160px;background:#E8D9C9;top:-60px;left:-40px}
@@ -216,18 +198,24 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .diary-hero h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;position:relative;z-index:1}
 .diary-hero p{font-size:13px;color:var(--text3);position:relative;z-index:1;max-width:320px;margin:0 auto;line-height:1.5}
 
-/* Метрики */
-.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-.metric-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px 16px;box-shadow:var(--shadow-xs)}
+/* Сетка метрик 2x2 */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.metric-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px 16px;box-shadow:var(--shadow-xs);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
 .mc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .mc-head .mc-left{display:flex;align-items:center;gap:8px}
 .mc-head .mc-ico{width:32px;height:32px;border-radius:10px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:16px}
+.mc-head .mc-badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:var(--radius-pill);color:#fff;background:linear-gradient(135deg,#D4A030,#B8880E);box-shadow:0 2px 8px rgba(212,160,48,.25)}
 .mc-head .mc-label{font-size:12px;font-weight:600;color:var(--text3)}
 .mc-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:12px;color:var(--beige-dark)}
 .mc-bar{height:6px;background:var(--bg2);border-radius:99px;overflow:hidden}
 .mc-bar-fill{height:100%;border-radius:99px;transition:width 1s var(--ease);background:linear-gradient(90deg,var(--beige-dark),var(--beige-light))}
+.mc-bar-fill.mc-bar-gold{background:linear-gradient(90deg,#B8880E,#D4A030,#E8B830)}
 
-/* Динамика — среднее за 7 дней */
+/* Мотивация: такой же размер, по центру */
+.mot-center{display:flex;justify-content:center;margin-bottom:20px}
+.mot-center .metric-card{width:calc(50% - 6px)}
+
 .trend-block{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:24px 20px;margin-bottom:20px;box-shadow:var(--shadow-xs)}
 .trend-block h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:20px}
 .trend-avg-wrap{display:flex;align-items:center;gap:24px}
@@ -241,12 +229,10 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .ta-sub{font-size:13px;color:var(--text3);line-height:1.5}
 .ta-empty{text-align:center;padding:20px 0;color:var(--text3);font-size:13px;line-height:1.6}
 
-/* === АНИМАЦИИ === */
 @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 @keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-/* Адаптив */
 @media(min-width:900px){
   body{background:var(--bg3)}
   .top-bar{left:50%;right:auto;transform:translateX(-50%);width:820px;padding:0 32px;height:64px}
@@ -257,7 +243,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 </head>
 <body>
 
-<!-- Градиенты для SVG-колец -->
 <svg style="position:absolute;width:0;height:0">
   <defs>
     <linearGradient id="rGr" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -269,9 +254,8 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   </defs>
 </svg>
 
-<!-- ВЕРХНЯЯ ПАНЕЛЬ -->
 <div class="top-bar">
-  <a href="https://betacourse.tilda.ws/" class="back-btn">←</a>
+  <a href="https://bazarosta.tilda.ws/" class="back-btn">←</a>
   <div class="top-bar-title" id="topTitle">ИИ Кабинет</div>
   <div class="top-bar-badge badge-chat" id="topBadge">
     <span class="ai-dot"></span>
@@ -279,10 +263,8 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   </div>
 </div>
 
-<!-- ЭКРАНЫ -->
 <div class="screens">
 
-  <!-- Чат с Елизаветой -->
   <div class="screen active" id="s-consult">
     <div class="chat-wrap">
       <div class="chat-messages" id="consultMsgs">
@@ -298,7 +280,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
-  <!-- Практика -->
   <div class="screen" id="s-practice">
     <div class="chat-wrap">
       <div class="chat-messages" id="practiceMsgs">
@@ -314,7 +295,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
-  <!-- Рекомендации -->
   <div class="screen" id="s-recom">
     <div class="pad">
       <div class="section-tag">ИИ Аналитика</div>
@@ -329,7 +309,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
-  <!-- Прохождение тестов (скрытый, открывается из чата) -->
   <div class="screen" id="s-tests">
     <div class="pad" id="testsListPad">
       <div class="section-tag">Диагностика</div>
@@ -360,7 +339,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     </div>
   </div>
 
-  <!-- Дневник состояния -->
   <div class="screen" id="s-diary">
     <div class="pad">
       <div class="section-tag">Аналитика</div>
@@ -377,6 +355,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
         <p id="svDesc">Елизавета анализирует ваши данные</p>
       </div>
 
+      <!-- 4 метрики 2x2 -->
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="mc-head"><div class="mc-left"><span class="mc-ico">😊</span><span class="mc-label">Настроение</span></div></div>
@@ -400,7 +379,21 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
         </div>
       </div>
 
-      <!-- Динамика: только среднее за 7 дней -->
+      <!-- Мотивация: тот же размер, по центру -->
+      <div class="mot-center">
+        <div class="metric-card">
+          <div class="mc-head">
+            <div class="mc-left">
+              <span class="mc-ico" style="background:linear-gradient(135deg,rgba(212,160,48,.15),rgba(184,136,14,.1))">🎯</span>
+              <span class="mc-label">Мотивация</span>
+            </div>
+            <span class="mc-badge" id="motBadge">—</span>
+          </div>
+          <div class="mc-val" id="motVal">—</div>
+          <div class="mc-bar" style="height:8px"><div class="mc-bar-fill mc-bar-gold" id="motBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
       <div class="trend-block">
         <h4>📈 Динамика</h4>
         <div id="trendContent">
@@ -412,36 +405,26 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 
 </div>
 
-<!-- НИЖНЯЯ НАВИГАЦИЯ -->
 <div class="bottom-nav">
   <div class="nav-item active" data-tab="consult" onclick="goTab('consult')">
-    <div class="nav-ico">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/></svg>
-    </div>
+    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/></svg></div>
     <div class="nav-lbl">Чат</div>
   </div>
   <div class="nav-item" data-tab="practice" onclick="goTab('practice')">
-    <div class="nav-ico">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg>
-    </div>
+    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg></div>
     <div class="nav-lbl">Практика</div>
   </div>
   <div class="nav-item" data-tab="recom" onclick="goTab('recom')">
-    <div class="nav-ico">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg>
-    </div>
+    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg></div>
     <div class="nav-lbl">Реком.</div>
   </div>
   <div class="nav-item" data-tab="diary" onclick="goTab('diary')">
-    <div class="nav-ico">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg>
-    </div>
+    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg></div>
     <div class="nav-lbl">Дневник</div>
   </div>
 </div>
 
 <script>
-/* === ДАННЫЕ ТЕСТОВ === */
 const tests = [
   {name:'Шкала тревожности', ico:'😰', info:'5 вопросов · 3 мин', questions:[
     {q:'Я чувствую спокойствие',opts:['Почти никогда','Иногда','Часто','Почти всегда'],correct:3},
@@ -461,59 +444,35 @@ const tests = [
 
 let curTest = -1, curQ = 0, answers = [];
 
-/* Имена пользователей в приветствиях */
 document.getElementById('userName').textContent = CURRENT_USER.name;
 document.getElementById('practiceUserName').textContent = CURRENT_USER.name;
 
-/* === НАВИГАЦИЯ ПО ВКЛАДКАМ === */
-const tabTitles = {
-  consult: 'ИИ Кабинет',
-  practice: 'Практика',
-  recom: 'Рекомендации',
-  diary: 'Дневник состояния',
-  tests: 'Тесты'
-};
-
-const tabBadge = {
-  consult: { text: 'Елизавета', cls: 'badge-chat' },
-  practice: { text: 'Практика', cls: 'badge-practice' },
-  recom: null,
-  diary: null,
-  tests: null
-};
+const tabTitles = { consult:'ИИ Кабинет', practice:'Практика', recom:'Рекомендации', diary:'Дневник состояния', tests:'Тесты' };
+const tabBadge = { consult:{text:'Елизавета',cls:'badge-chat'}, practice:{text:'Практика',cls:'badge-practice'}, recom:null, diary:null, tests:null };
 
 function goTab(name) {
-  /* Скрываем все экраны */
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-  /* Показываем нужный экран */
   const screen = document.getElementById('s-' + name);
   if (screen) screen.classList.add('active');
-
-  /* Подсвечиваем нужную кнопку навигации */
   const nav = document.querySelector('.nav-item[data-tab="' + name + '"]');
   if (nav) nav.classList.add('active');
-
-  /* Обновляем верхнюю панель */
   document.getElementById('topTitle').textContent = tabTitles[name] || 'ИИ Кабинет';
   const badge = document.getElementById('topBadge');
-  const badgeInfo = tabBadge[name];
-  if (badgeInfo) {
-    badge.style.display = 'flex';
-    badge.className = 'top-bar-badge ' + badgeInfo.cls;
-    document.getElementById('topBadgeText').textContent = badgeInfo.text;
-  } else {
-    badge.style.display = 'none';
-  }
-
-  /* Загружаем данные при переходе */
+  const info = tabBadge[name];
+  if (info) { badge.style.display='flex'; badge.className='top-bar-badge '+info.cls; document.getElementById('topBadgeText').textContent=info.text; }
+  else { badge.style.display='none'; }
   if (name === 'diary') loadDiaryData();
   if (name === 'tests') renderTestList();
   if (name === 'recom') loadRecommendations();
 }
 
-/* === ЧАТ С ЕЛИЗАВЕТОЙ === */
+function calcOverall(h) {
+  /* Только реально оценённые метрики; стресс инвертируется. Нет данных → null */
+  const known = [h.mood, h.energy, h.stress == null ? null : 100 - h.stress, h.confidence, h.motivation].filter(v => v != null);
+  return known.length ? known.reduce((a, b) => a + b, 0) / known.length : null;
+}
+
 async function loadChatHistory() {
   try {
     const res = await fetch(API_URL + '/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
@@ -522,11 +481,9 @@ async function loadChatHistory() {
     if (data.history && data.history.length > 0) {
       const msgs = document.getElementById('consultMsgs');
       msgs.innerHTML = '';
-      data.history.forEach(m => {
-        addBubble('consultMsgs', (m.role === 'assistant' ? 'ai' : 'user'), escHtml(m.content).replace(/\n/g, '<br>'));
-      });
+      data.history.forEach(m => { addBubble('consultMsgs', m.role==='assistant'?'ai':'user', escHtml(m.content).replace(/\n/g,'<br>')); });
     }
-  } catch (e) { console.error('Ошибка загрузки чата:', e); }
+  } catch(e) { console.error(e); }
 }
 
 async function sendMsg() {
@@ -534,188 +491,132 @@ async function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  addBubble('consultMsgs', 'user', escHtml(text));
-
+  addBubble('consultMsgs','user',escHtml(text));
   if (text.toLowerCase().includes('пройти тест')) {
-    addBubble('consultMsgs', 'ai', 'Открываю раздел тестов. Выберите подходящий 👇');
-    setTimeout(() => goTab('tests'), 800);
-    fetch(API_URL + '/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({...CURRENT_USER, message: text}) });
+    addBubble('consultMsgs','ai','Открываю раздел тестов. Выберите подходящий 👇');
+    setTimeout(()=>goTab('tests'),800);
+    fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,message:text})});
     return;
   }
-
-  const tid = 'typ-' + Date.now();
-  showTyping('consultMsgs', tid);
-
-  let replyText = '';
+  const tid='typ-'+Date.now(); showTyping('consultMsgs',tid);
+  let reply='';
   try {
-    const res = await fetch(API_URL + '/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...CURRENT_USER, message: text })
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.details || errData.error || 'Сервер вернул статус ' + res.status);
-    }
-    const data = await res.json();
-    replyText = data.reply || 'ИИ вернул пустой ответ. Попробуйте еще раз.';
-  } catch (e) {
-    replyText = '⚠️ Ошибка сервера: ' + e.message;
-  }
+    const res=await fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,message:text})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.details||e.error||'Статус '+res.status)}
+    const d=await res.json(); reply=d.reply||'Пустой ответ.';
+  }catch(e){reply='⚠️ Ошибка: '+e.message}
   document.getElementById(tid).remove();
-  addBubble('consultMsgs', 'ai', escHtml(replyText).replace(/\n/g, '<br>'));
+  addBubble('consultMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
 }
 
-/* === ЧАТ ПРАКТИКИ === */
 async function loadPracticeHistory() {
   try {
-    const res = await fetch(API_URL + '/practice/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.history && data.history.length > 0) {
-      const msgs = document.getElementById('practiceMsgs');
-      msgs.innerHTML = '';
-      data.history.forEach(m => {
-        addBubble('practiceMsgs', (m.role === 'assistant' ? 'ai' : 'user'), escHtml(m.content).replace(/\n/g, '<br>'));
-      });
+    const res=await fetch(API_URL+'/practice/history?tilda_user_id='+CURRENT_USER.tilda_user_id);
+    if(!res.ok)return;
+    const data=await res.json();
+    if(data.history&&data.history.length>0){
+      const msgs=document.getElementById('practiceMsgs');
+      msgs.innerHTML='';
+      data.history.forEach(m=>{addBubble('practiceMsgs',m.role==='assistant'?'ai':'user',escHtml(m.content).replace(/\n/g,'<br>'));});
     }
-  } catch (e) { console.error('Ошибка загрузки практики:', e); }
+  }catch(e){console.error(e)}
 }
 
 async function sendPracticeMsg() {
-  const input = document.getElementById('practiceInput');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-  addBubble('practiceMsgs', 'user', escHtml(text));
-
-  const tid = 'ptyp-' + Date.now();
-  showTyping('practiceMsgs', tid, '📝');
-
-  let replyText = '';
+  const input=document.getElementById('practiceInput');
+  const text=input.value.trim();
+  if(!text)return;
+  input.value='';
+  addBubble('practiceMsgs','user',escHtml(text));
+  const tid='ptyp-'+Date.now(); showTyping('practiceMsgs',tid,'📝');
+  let reply='';
   try {
-    const res = await fetch(API_URL + '/practice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...CURRENT_USER, message: text })
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.details || errData.error || 'Сервер вернул статус ' + res.status);
-    }
-    const data = await res.json();
-    replyText = data.reply || 'Пустой ответ. Попробуйте еще раз.';
-  } catch (e) {
-    replyText = '⚠️ Ошибка: ' + e.message;
-  }
+    const res=await fetch(API_URL+'/practice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,message:text})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.details||e.error||'Статус '+res.status)}
+    const d=await res.json(); reply=d.reply||'Пустой ответ.';
+  }catch(e){reply='⚠️ Ошибка: '+e.message}
   document.getElementById(tid).remove();
-  addBubble('practiceMsgs', 'ai', escHtml(replyText).replace(/\n/g, '<br>'));
+  addBubble('practiceMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
 }
 
-/* === ОБЩИЕ ФУНКЦИИ ЧАТА === */
-function escHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function addBubble(cid,type,html){
+  const m=document.getElementById(cid),d=document.createElement('div');
+  d.className='chat-msg cm-'+type;
+  const letter=escHtml((CURRENT_USER.name||'Вы').charAt(0).toUpperCase());
+  const aiAva=cid==='practiceMsgs'?'📝':'🤖';
+  d.innerHTML='<div class="cm-av">'+(type==='ai'?aiAva:letter)+'</div><div class="cm-bub">'+html+'</div>';
+  m.appendChild(d);m.scrollTop=m.scrollHeight;
+}
+function showTyping(cid,tid,avatar){
+  const msgs=document.getElementById(cid),td=document.createElement('div');
+  td.className='chat-msg cm-ai';td.id=tid;
+  td.innerHTML='<div class="cm-av">'+(avatar||'🤖')+'</div><div class="cm-bub"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(td);msgs.scrollTop=msgs.scrollHeight;
 }
 
-function addBubble(cid, type, html) {
-  const m = document.getElementById(cid);
-  const d = document.createElement('div');
-  d.className = 'chat-msg cm-' + type;
-  const userLetter = escHtml((CURRENT_USER.name || 'Вы').charAt(0).toUpperCase());
-  /* Определяем аватар: для практики ИИ использует 📝 */
-  const aiAvatar = cid === 'practiceMsgs' ? '📝' : '🤖';
-  d.innerHTML = '<div class="cm-av">' + (type === 'ai' ? aiAvatar : userLetter) + '</div><div class="cm-bub">' + html + '</div>';
-  m.appendChild(d);
-  m.scrollTop = m.scrollHeight;
-}
-
-function showTyping(cid, tid, avatar) {
-  const msgs = document.getElementById(cid);
-  const td = document.createElement('div');
-  td.className = 'chat-msg cm-ai';
-  td.id = tid;
-  td.innerHTML = '<div class="cm-av">' + (avatar || '🤖') + '</div><div class="cm-bub"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
-  msgs.appendChild(td);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-/* === ТЕСТЫ === */
-function renderTestList() {
-  const el = document.getElementById('testList');
-  el.innerHTML = '';
-  tests.forEach((t, i) => {
-    const div = document.createElement('div');
-    div.className = 'test-item';
-    div.onclick = () => startTest(i);
-    div.innerHTML = '<div class="ti-ico">' + t.ico + '</div><div class="ti-info"><h4>' + t.name + '</h4><p>' + t.info + '</p></div><span class="ti-arrow">→</span>';
-    el.appendChild(div);
+function renderTestList(){
+  const el=document.getElementById('testList');el.innerHTML='';
+  tests.forEach((t,i)=>{
+    const d=document.createElement('div');d.className='test-item';d.onclick=()=>startTest(i);
+    d.innerHTML='<div class="ti-ico">'+t.ico+'</div><div class="ti-info"><h4>'+t.name+'</h4><p>'+t.info+'</p></div><span class="ti-arrow">→</span>';
+    el.appendChild(d);
   });
 }
-
-function startTest(idx) {
-  curTest = idx; curQ = 0; answers = new Array(tests[idx].questions.length).fill(-1);
-  document.getElementById('testsListPad').style.display = 'none';
+function startTest(idx){
+  curTest=idx;curQ=0;answers=new Array(tests[idx].questions.length).fill(-1);
+  document.getElementById('testsListPad').style.display='none';
   document.getElementById('testResult').classList.remove('active');
   document.getElementById('testPass').classList.add('active');
   renderQ();
 }
-
-function renderQ() {
-  const t = tests[curTest], q = t.questions[curQ], total = t.questions.length;
-  const pct = Math.round((curQ / total) * 100);
-  document.getElementById('tpFill').style.width = pct + '%';
-  document.getElementById('tpStep').textContent = 'Вопрос ' + (curQ + 1) + ' из ' + total;
-  document.getElementById('tpQNum').textContent = 'Вопрос ' + (curQ + 1);
-  document.getElementById('tpQuestion').textContent = q.q;
-  const opts = document.getElementById('tpOptions');
-  opts.innerHTML = '';
-  q.opts.forEach((o, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'tp-opt' + (answers[curQ] === i ? ' selected' : '');
-    btn.textContent = o;
-    btn.onclick = () => {
-      answers[curQ] = i;
-      document.querySelectorAll('.tp-opt').forEach((x, j) => x.classList.toggle('selected', j === i));
-      document.getElementById('tpNext').disabled = false;
-    };
+function renderQ(){
+  const t=tests[curTest],q=t.questions[curQ],total=t.questions.length;
+  document.getElementById('tpFill').style.width=Math.round((curQ/total)*100)+'%';
+  document.getElementById('tpStep').textContent='Вопрос '+(curQ+1)+' из '+total;
+  document.getElementById('tpQNum').textContent='Вопрос '+(curQ+1);
+  document.getElementById('tpQuestion').textContent=q.q;
+  const opts=document.getElementById('tpOptions');opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='tp-opt'+(answers[curQ]===i?' selected':'');
+    btn.textContent=o;
+    btn.onclick=()=>{answers[curQ]=i;document.querySelectorAll('.tp-opt').forEach((x,j)=>x.classList.toggle('selected',j===i));document.getElementById('tpNext').disabled=false};
     opts.appendChild(btn);
   });
-  document.getElementById('tpBack').style.visibility = curQ === 0 ? 'hidden' : 'visible';
-  document.getElementById('tpNext').textContent = curQ === total - 1 ? 'Завершить ✓' : 'Далее →';
+  document.getElementById('tpBack').style.visibility=curQ===0?'hidden':'visible';
+  document.getElementById('tpNext').textContent=curQ===total-1?'Завершить ✓':'Далее →';
 }
-
-function testNext() { if (curQ < tests[curTest].questions.length - 1) { curQ++; renderQ(); } else finishTest(); }
-function testPrev() { if (curQ > 0) { curQ--; renderQ(); } }
-
-async function finishTest() {
-  const t = tests[curTest];
-  let score = 0;
-  answers.forEach((a, i) => { if (a === t.questions[i].correct) score++; });
-  const level = score >= 4 ? 'low' : score >= 2 ? 'mid' : 'high';
-  const res = t.results[level];
-  document.getElementById('trIco').textContent = res.ico;
-  document.getElementById('trTitle').textContent = res.title;
-  document.getElementById('trScore').textContent = score + ' / ' + t.questions.length;
-  document.getElementById('trDesc').textContent = res.desc;
-  try {
-    await fetch(API_URL + '/test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...CURRENT_USER, test_name: t.name, score: score, interpretation: res.title })
-    });
-  } catch(e) { console.error(e); }
+function testNext(){if(curQ<tests[curTest].questions.length-1){curQ++;renderQ()}else finishTest()}
+function testPrev(){if(curQ>0){curQ--;renderQ()}}
+async function finishTest(){
+  const t=tests[curTest];let score=0;
+  answers.forEach((a,i)=>{if(a===t.questions[i].correct)score++});
+  const level=score>=4?'low':score>=2?'mid':'high';
+  const r=t.results[level];
+  document.getElementById('trIco').textContent=r.ico;
+  document.getElementById('trTitle').textContent=r.title;
+  document.getElementById('trScore').textContent=score+' / '+t.questions.length;
+  document.getElementById('trDesc').textContent=r.desc;
+  try{await fetch(API_URL+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,test_name:t.name,score:score,interpretation:r.title})})}catch(e){console.error(e)}
   document.getElementById('testPass').classList.remove('active');
   document.getElementById('testResult').classList.add('active');
 }
-
-function backToChat() {
+function backToChat(){
   document.getElementById('testPass').classList.remove('active');
   document.getElementById('testResult').classList.remove('active');
-  document.getElementById('testsListPad').style.display = '';
+  document.getElementById('testsListPad').style.display='';
   goTab('consult');
 }
 
-/* === ДНЕВНИК СОСТОЯНИЯ === */
+function motLevel(v) {
+  if (v >= 80) return 'Высокая';
+  if (v >= 60) return 'Хорошая';
+  if (v >= 40) return 'Средняя';
+  if (v >= 20) return 'Низкая';
+  return 'Критическая';
+}
+
 async function loadDiaryData() {
   try {
     const res = await fetch(API_URL + '/state?tilda_user_id=' + CURRENT_USER.tilda_user_id);
@@ -726,23 +627,27 @@ async function loadDiaryData() {
       document.getElementById('svDesc').textContent = 'Поговорите с Елизаветой, чтобы появились метрики.';
       return;
     }
-    const mood = state.mood, energy = state.energy, stress = state.stress, confidence = state.confidence;
-    const known = [mood, energy, stress == null ? null : 100 - stress, confidence].filter(v => v != null);
-    const overall = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : 0;
+    const mood = state.mood;
+    const energy = state.energy;
+    const stress = state.stress;
+    const confidence = state.confidence;
+    const motivation = state.motivation;
+    const overallRaw = calcOverall(state);
+    const overall = overallRaw == null ? 0 : Math.round(overallRaw);
 
-    /* Главное кольцо */
     document.getElementById('ringFg').style.strokeDashoffset = 314.16 - (314.16 * overall / 100);
     document.getElementById('svNum').textContent = overall;
     document.getElementById('svTitle').textContent = overall >= 70 ? 'Хорошее состояние' : 'Требует внимания';
     document.getElementById('svDesc').textContent = state.note || 'Данные обновлены';
 
-    /* Метрики (null → прочерк, без выдуманных 50) */
     setMetric('mood', mood);
     setMetric('energy', energy);
     setMetric('stress', stress);
     setMetric('conf', confidence);
 
-    /* Загружаем динамику за 7 дней */
+    setMetric('mot', motivation);
+    document.getElementById('motBadge').textContent = motivation == null ? '—' : motLevel(motivation);
+
     loadTrendAverage();
   } catch (e) {
     console.error(e);
@@ -764,82 +669,58 @@ async function loadTrendAverage() {
   try {
     const res = await fetch(API_URL + '/state/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
     const data = await res.json();
-
     if (!data.history || data.history.length === 0) {
       container.innerHTML = '<div class="ta-empty">Недостаточно данных для отображения динамики. Поговорите с Елизаветой, чтобы появились записи.</div>';
       return;
     }
-
-    /* Фильтруем записи за последние 7 дней */
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recentEntries = data.history.filter(h => {
-      const d = new Date((h.created_at || '').replace(' ', 'T') + 'Z');
-      return d >= weekAgo;
-    });
-
-    if (recentEntries.length === 0) {
+    const recent = data.history.filter(h => new Date((h.created_at||'').replace(' ','T')+'Z') >= weekAgo);
+    if (recent.length === 0) {
       container.innerHTML = '<div class="ta-empty">За последние 7 дней нет записей. Продолжайте общение с Елизаветой.</div>';
       return;
     }
-
-    /* Считаем среднее общее состояние (только по известным метрикам) */
-    let totalOverall = 0, counted = 0;
-    recentEntries.forEach(h => {
-      const known = [h.mood, h.energy, h.stress == null ? null : 100 - h.stress, h.confidence].filter(v => v != null);
-      if (!known.length) return;
-      totalOverall += known.reduce((a, b) => a + b, 0) / known.length;
-      counted++;
-    });
+    let total = 0, counted = 0;
+    recent.forEach(h => { const o = calcOverall(h); if (o != null) { total += o; counted++; } });
     if (!counted) {
       container.innerHTML = '<div class="ta-empty">За последние 7 дней нет записей. Продолжайте общение с Елизаветой.</div>';
       return;
     }
-    const avgOverall = Math.round(totalOverall / counted);
+    const avg = Math.round(total / counted);
 
-    /* Определяем описание */
     let statusText = '';
-    if (avgOverall >= 80) statusText = 'Отличное состояние, вы в прекрасной форме';
-    else if (avgOverall >= 65) statusText = 'Хорошее состояние, продолжайте в том же духе';
-    else if (avgOverall >= 50) statusText = 'Среднее состояние, есть пространство для роста';
-    else if (avgOverall >= 35) statusText = 'Требует внимания, рекомендуем больше практиковать';
+    if (avg >= 80) statusText = 'Отличное состояние, вы в прекрасной форме';
+    else if (avg >= 65) statusText = 'Хорошее состояние, продолжайте в том же духе';
+    else if (avg >= 50) statusText = 'Среднее состояние, есть пространство для роста';
+    else if (avg >= 35) statusText = 'Требует внимания, рекомендуем больше практиковать';
     else statusText = 'Низкое состояние, обратитесь к Елизавете за поддержкой';
 
-    const circumference = 2 * Math.PI * 38; /* r=38 для кольца 90px */
-
+    const circ = 2 * Math.PI * 38;
     container.innerHTML =
       '<div class="trend-avg-wrap">' +
         '<div class="ta-ring">' +
-          '<svg viewBox="0 0 90 90">' +
-            '<circle class="ring-bg" cx="45" cy="45" r="38"/>' +
-            '<circle class="ring-fg" id="trendRingFg" cx="45" cy="45" r="38" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="' + circumference.toFixed(2) + '"/>' +
-          '</svg>' +
-          '<div class="ta-val" id="trendAvgVal">' + avgOverall + '</div>' +
+          '<svg viewBox="0 0 90 90"><circle class="ring-bg" cx="45" cy="45" r="38"/><circle class="ring-fg" id="trendRingFg" cx="45" cy="45" r="38" stroke-dasharray="'+circ.toFixed(2)+'" stroke-dashoffset="'+circ.toFixed(2)+'"/></svg>' +
+          '<div class="ta-val">'+avg+'</div>' +
         '</div>' +
         '<div class="ta-text">' +
           '<div class="ta-title">Среднее общее состояние</div>' +
           '<div class="ta-sub">за последние 7 дней</div>' +
-          '<div class="ta-sub" style="margin-top:8px;font-weight:600;color:var(--text)">' + statusText + '</div>' +
+          '<div class="ta-sub" style="margin-top:8px;font-weight:600;color:var(--text)">'+statusText+'</div>' +
         '</div>' +
       '</div>';
 
-    /* Анимируем кольцо после рендера */
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const ring = document.getElementById('trendRingFg');
-        if (ring) {
-          ring.style.strokeDashoffset = circumference - (circumference * avgOverall / 100);
-        }
+        if (ring) ring.style.strokeDashoffset = circ - (circ * avg / 100);
       });
     });
-
   } catch(e) {
     console.error(e);
     container.innerHTML = '<div class="ta-empty">Не удалось загрузить динамику.</div>';
   }
 }
 
-/* === РЕКОМЕНДАЦИИ === */
 async function loadRecommendations() {
   try {
     const res = await fetch(API_URL + '/recommendations?tilda_user_id=' + CURRENT_USER.tilda_user_id);
@@ -850,15 +731,13 @@ async function loadRecommendations() {
     if (data.recommendations && data.recommendations.length > 0) {
       empty.style.display = 'none';
       data.recommendations.forEach(r => {
-        const dateLabel = new Date((r.created_at || '').replace(' ', 'T') + 'Z').toLocaleDateString('ru-RU');
+        const dateLabel = new Date((r.created_at||'').replace(' ','T')+'Z').toLocaleDateString('ru-RU');
         const div = document.createElement('div');
         div.className = 'recom-card';
-        div.innerHTML = '<h4>💡 ' + escHtml(r.category) + '</h4><p>' + escHtml(r.text) + '</p><div class="recom-date">Создано: ' + dateLabel + '</div>';
+        div.innerHTML = '<h4>💡 '+escHtml(r.category)+'</h4><p>'+escHtml(r.text)+'</p><div class="recom-date">Создано: '+dateLabel+'</div>';
         list.appendChild(div);
       });
-    } else {
-      empty.style.display = 'block';
-    }
+    } else { empty.style.display = 'block'; }
   } catch(e) { console.error(e); }
 }
 </script>
