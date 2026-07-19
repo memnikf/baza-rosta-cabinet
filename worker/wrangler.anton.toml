@@ -1,0 +1,13 @@
+name = "baza-rosta-ai"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+# Конфиг для аккаунта клиента (Антон). База создана на его Cloudflare.
+[[d1_databases]]
+binding = "DB"
+database_name = "baza-rosta-db"
+database_id = "0b6beb1a-1137-431a-811a-fd47df8cec3e"
+
+[vars]
+DEEPSEEK_MODEL = "deepseek-v4-flash"
+# DEEPSEEK_API_KEY задаётся секретом
