@@ -588,38 +588,6 @@ function renderTestList(){
     d.innerHTML='<div class="ti-ico">'+t.ico+'</div><div class="ti-info"><h4>'+t.name+'</h4><p>'+t.info+'</p></div><span class="ti-arrow">→</span>';
     el.appendChild(d);
   });
-  loadKnowledgeTests();
-}
-
-/* Тесты из базы знаний (добавлены через админку) — проводит Елизавета в чате */
-function loadKnowledgeTests(){
-  fetch(API_URL+'/knowledge/tests').then(function(res){return res.json()}).then(function(data){
-    if(!data.tests||!data.tests.length)return;
-    var el=document.getElementById('testList');
-    data.tests.forEach(function(t){
-      /* не дублируем, если тест с таким именем уже есть кнопочный */
-      var exists=tests.some(function(x){return x.name.toLowerCase()===t.name.toLowerCase()});
-      if(exists)return;
-      var d=document.createElement('div');d.className='test-item';
-      d.onclick=function(){startKnowledgeTest(t.name)};
-      d.innerHTML='<div class="ti-ico">🧪</div><div class="ti-info"><h4>'+escHtml(t.name)+'</h4><p>Проводит Елизавета в чате</p></div><span class="ti-arrow">→</span>';
-      el.appendChild(d);
-    });
-  }).catch(function(e){console.error(e)});
-}
-
-function startKnowledgeTest(name){
-  goTab('consult');
-  addBubble('consultMsgs','ai','Начинаем тест «'+escHtml(name)+'» 🧪');
-  var text='Хочу пройти тест «'+name+'». Проведи его по вопросам из базы знаний: задавай по одному вопросу, в конце посчитай результат и дай интерпретацию.';
-  var tid='typ-'+Date.now();showTyping('consultMsgs',tid);
-  var reply='';
-  fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))}).then(function(res){
-    if(!res.ok)return res.json().then(function(e){throw new Error(e.details||e.error||'Статус '+res.status)});return res.json();
-  }).then(function(d){reply=d.reply||'Пустой ответ.'}).catch(function(e){reply='⚠️ Ошибка: '+e.message}).finally(function(){
-    var el=document.getElementById(tid);if(el)el.remove();
-    addBubble('consultMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
-  });
 }
 
 function startTest(idx){
