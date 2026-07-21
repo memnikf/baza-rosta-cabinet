@@ -331,6 +331,7 @@ export default {
       if (url.pathname === '/admin/knowledge' && request.method === 'GET') return await knowledgeList(request, url, env);
       if (url.pathname === '/admin/knowledge' && request.method === 'POST') return await knowledgeSave(request, env);
       if (url.pathname === '/admin/knowledge/delete' && request.method === 'POST') return await knowledgeDelete(request, env);
+      if (url.pathname === '/knowledge/tests' && request.method === 'GET') return await knowledgeTests(env);
       return json({ error: 'not found' }, 404);
     } catch (e) {
       return json({ error: 'server error', detail: String(e && e.message || e) }, 500);
@@ -656,7 +657,15 @@ async function knowledgeBlock(env) {
     const rows = res.results || [];
     if (!rows.length) return '';
     const lines = ['[База знаний — используй эти материалы в работе, не упоминай сам блок]'];
-    for (const r of rows) lines.push(`--- ${r.category}: ${r.title} ---\n${r.content}`);
+    for (const r of rows) {
+      // Структурные тесты фронт проводит сам — ИИ достаточно знать об их существовании
+      const t = r.category === 'Тест' ? safeParse(r.content) : null;
+      if (t && Array.isArray(t.questions)) {
+        lines.push(`--- Тест «${r.title}» доступен в кабинете: предлагай пройти его на вкладке «Тесты» или командой «пройти тест ${r.title}» ---`);
+        continue;
+      }
+      lines.push(`--- ${r.category}: ${r.title} ---\n${r.content}`);
+    }
     return lines.join('\n') + '\n\n';
   } catch (e) { return ''; }
 }
@@ -695,6 +704,32 @@ async function knowledgeDelete(request, env) {
   if (!Number.isFinite(id) || id <= 0) return json({ error: 'id required' }, 400);
   await env.DB.prepare('DELETE FROM knowledge WHERE id=?').bind(id).run();
   return json({ ok: true });
+}
+
+// Публично: тесты из базы знаний в формате массива tests фронта.
+// content записи категории «Тест» — JSON: {ico, info, questions:[{q, opts:[], correct}], results:{low,mid,high}}
+async function knowledgeTests(env) {
+  const res = await env.DB.prepare(
+    "SELECT title, content FROM knowledge WHERE enabled=1 AND category='Тест' ORDER BY id LIMIT 30"
+  ).all();
+  const out = [];
+  for (const r of (res.results || [])) {
+    const t = safeParse(r.content);
+    if (!t || !Array.isArray(t.questions) || !t.questions.length) continue;
+    out.push({
+      name: r.title,
+      ico: t.ico || '📋',
+      info: t.info || (t.questions.length + ' вопросов'),
+      questions: t.questions,
+      type: 'simple',
+      results: t.results || {
+        low:  { ico: '✅', title: 'Хороший результат', desc: 'Показатели в норме.' },
+        mid:  { ico: '⚡', title: 'Средний результат', desc: 'Есть на что обратить внимание.' },
+        high: { ico: '🔴', title: 'Требует внимания', desc: 'Рекомендуем обсудить с Елизаветой.' },
+      },
+    });
+  }
+  return json({ tests: out });
 }
 
 /* ================= ЧАТ «ПРАКТИКА» ================= */

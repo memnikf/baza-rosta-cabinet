@@ -422,6 +422,19 @@ var curTest=-1,curQ=0,answers=[];
 document.getElementById('userName').textContent=CURRENT_USER.name;
 document.getElementById('practiceUserName').textContent=CURRENT_USER.name;
 
+/* Тесты из базы знаний (админка) — добавляются к встроенным */
+var baseTests=tests.slice();
+function loadKnowledgeTests(){
+  fetch(API_URL+'/knowledge/tests').then(function(r){return r.json()}).then(function(d){
+    if(!d.tests||!d.tests.length)return;
+    var names={};baseTests.forEach(function(t){names[t.name.toLowerCase()]=1});
+    tests=baseTests.concat(d.tests.filter(function(t){return !names[t.name.toLowerCase()]}));
+    /* если открыта вкладка тестов — перерисовать */
+    if(document.getElementById('s-tests').classList.contains('active'))renderTestList();
+  }).catch(function(e){console.error(e)});
+}
+loadKnowledgeTests();
+
 var tabTitles={consult:'ИИ Кабинет',practice:'Практика',recom:'Рекомендации',diary:'Дневник состояния',tests:'Тесты',results:'Результаты тестов'};
 var tabBadge={consult:{text:'Елизавета',cls:'badge-chat'},practice:{text:'Практика',cls:'badge-practice'},recom:null,diary:null,tests:null,results:null};
 
@@ -575,6 +588,38 @@ function renderTestList(){
     d.innerHTML='<div class="ti-ico">'+t.ico+'</div><div class="ti-info"><h4>'+t.name+'</h4><p>'+t.info+'</p></div><span class="ti-arrow">→</span>';
     el.appendChild(d);
   });
+  loadKnowledgeTests();
+}
+
+/* Тесты из базы знаний (добавлены через админку) — проводит Елизавета в чате */
+function loadKnowledgeTests(){
+  fetch(API_URL+'/knowledge/tests').then(function(res){return res.json()}).then(function(data){
+    if(!data.tests||!data.tests.length)return;
+    var el=document.getElementById('testList');
+    data.tests.forEach(function(t){
+      /* не дублируем, если тест с таким именем уже есть кнопочный */
+      var exists=tests.some(function(x){return x.name.toLowerCase()===t.name.toLowerCase()});
+      if(exists)return;
+      var d=document.createElement('div');d.className='test-item';
+      d.onclick=function(){startKnowledgeTest(t.name)};
+      d.innerHTML='<div class="ti-ico">🧪</div><div class="ti-info"><h4>'+escHtml(t.name)+'</h4><p>Проводит Елизавета в чате</p></div><span class="ti-arrow">→</span>';
+      el.appendChild(d);
+    });
+  }).catch(function(e){console.error(e)});
+}
+
+function startKnowledgeTest(name){
+  goTab('consult');
+  addBubble('consultMsgs','ai','Начинаем тест «'+escHtml(name)+'» 🧪');
+  var text='Хочу пройти тест «'+name+'». Проведи его по вопросам из базы знаний: задавай по одному вопросу, в конце посчитай результат и дай интерпретацию.';
+  var tid='typ-'+Date.now();showTyping('consultMsgs',tid);
+  var reply='';
+  fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))}).then(function(res){
+    if(!res.ok)return res.json().then(function(e){throw new Error(e.details||e.error||'Статус '+res.status)});return res.json();
+  }).then(function(d){reply=d.reply||'Пустой ответ.'}).catch(function(e){reply='⚠️ Ошибка: '+e.message}).finally(function(){
+    var el=document.getElementById(tid);if(el)el.remove();
+    addBubble('consultMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
+  });
 }
 
 function startTest(idx){
@@ -609,7 +654,9 @@ function testPrev(){if(curQ>0){curQ--;renderQ()}}
 function finishTest(){
   var t=tests[curTest];var score=0;
   answers.forEach(function(a,i){if(a===t.questions[i].correct)score++});
-  var level=score>=4?'low':score>=2?'mid':'high';var r=t.results[level];
+  var total=t.questions.length;
+  var ratio=total?score/total:0;
+  var level=ratio>=0.7?'low':ratio>=0.4?'mid':'high';var r=t.results[level];
   document.getElementById('trIco').textContent=r.ico;document.getElementById('trTitle').textContent=r.title;
   document.getElementById('trScore').textContent=score+' / '+t.questions.length;document.getElementById('trDesc').textContent=r.desc;
   fetch(API_URL+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{test_name:t.name,score:score,interpretation:r.title}))}).catch(function(e){console.error(e)});
