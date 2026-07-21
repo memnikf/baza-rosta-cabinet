@@ -208,7 +208,7 @@ const SYSTEM_PROMPT = `Ты — «База роста AI», премиальны
 }
 
 Правила:
-- Метрики state_update оценивай от 0 до 100 только когда в разговоре реально есть информация о состоянии; если данных нет — оставляй null. Не выдумывай значения и не ставь нули «на всякий случай».
+- Метрики state_update оценивай от 0 до 100. Если пользователь ПРЯМО говорит о своём состоянии («классное настроение», «устал», «нервничаю», «нет сил») — обязательно оцени соответствующие метрики (настроение упомянул → mood; усталость → energy; тревога/напряжение → stress и т.д.), даже если сообщение короткое. Метрики, о которых информации не было, оставляй null. Не ставь нули «на всякий случай» и не выдумывай значения на пустом месте (приветствие без содержания → все null).
 - В recommendations клади 1-3 коротких персональных совета, когда они уместны.
 - В memory_update добавляй только новые устойчивые факты о человеке.
 - Если пользователь описал свой день, добавь также "diary_entry":{"emotion":"","main_problem":"","positive_points":"","recommendation":"","mood":0,"energy":0}.
@@ -324,6 +324,7 @@ export default {
       if (url.pathname === '/state/history' && request.method === 'GET') return await stateHistory(url, env);
       if (url.pathname === '/test' && request.method === 'POST') return await testSave(request, env);
       if (url.pathname === '/tests' && request.method === 'GET') return await testsList(url, env);
+      if (url.pathname === '/test/history' && request.method === 'GET') return await testsList(url, env); // алиас для фронта
       if (url.pathname === '/recommendations' && request.method === 'GET') return await recomList(url, env);
       if (url.pathname === '/practice' && request.method === 'POST') return await practiceChat(request, env);
       if (url.pathname === '/practice/history' && request.method === 'GET') return await practiceHistory(url, env);
@@ -387,7 +388,9 @@ async function chat(request, env) {
 
   // Профиль подмешиваем в ПОСЛЕДНЕЕ сообщение (а не в системный промпт),
   // чтобы префикс [system + история] оставался байт-стабильным для кеша DeepSeek.
-  const userContent = profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text;
+  // Напоминание про JSON обязательно: без него модель на коротких ответах опускает блок.
+  const userContent = profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text +
+    '\n\n[Служебно, не упоминай в ответе: в самом конце ответа добавь скрытый JSON-блок по формату из инструкции (memory_update/state_update/recommendations). Метрики, о которых говорил пользователь, оцени числом; остальные null.]';
 
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -599,7 +602,9 @@ async function testsList(url, env) {
   const res = await env.DB.prepare(
     'SELECT test_name, score, interpretation, created_at FROM tests WHERE user_id=? ORDER BY id DESC LIMIT 50'
   ).bind(uid).all();
-  return json({ tests: res.results || [] });
+  const rows = res.results || [];
+  // tests — исходный контракт, history — ждёт вкладка «Результаты» фронта клиента
+  return json({ tests: rows, history: rows });
 }
 
 /* ================= РЕКОМЕНДАЦИИ ================= */
@@ -657,7 +662,8 @@ async function practiceChat(request, env) {
   const history = (histRes.results || []).reverse();
 
   // Тот же принцип, что в основном чате: профиль в последнем сообщении ради префикс-кеша
-  const userContent = profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text;
+  const userContent = profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text +
+    '\n\n[Служебно, не упоминай в ответе: в самом конце ответа добавь скрытый JSON-блок по формату из инструкции (state_update/recommendations). Метрики, видные из практики, оцени числом; остальные null.]';
 
   const messages = [
     { role: 'system', content: PRACTICE_PROMPT },

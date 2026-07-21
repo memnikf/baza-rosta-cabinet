@@ -5,74 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ИИ Кабинет — База Роста</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
 <script>
   const API_URL = 'https://baza-rosta-ai.baza-rosta.workers.dev';
-  
   function getCurrentUser() {
     if (typeof window.tilda_member !== 'undefined' && window.tilda_member) {
-      const u = {
-        tilda_user_id: window.tilda_member.user_id || window.tilda_member.id,
-        email: window.tilda_member.email || '',
-        name: window.tilda_member.name || window.tilda_member.first_name || 'Пользователь'
-      };
-      localStorage.setItem('baza_rosta_user', JSON.stringify(u));
-      return u;
+      const u = { tilda_user_id: window.tilda_member.user_id || window.tilda_member.id, email: window.tilda_member.email || '', name: window.tilda_member.name || window.tilda_member.first_name || 'Пользователь' };
+      localStorage.setItem('baza_rosta_user', JSON.stringify(u)); return u;
     }
     const params = new URLSearchParams(window.location.search);
     const uid = params.get('tilda_user_id') || params.get('uid');
-    if (uid) {
-      const u = {
-        tilda_user_id: uid,
-        email: params.get('email') || '',
-        name: params.get('name') || 'Пользователь'
-      };
-      localStorage.setItem('baza_rosta_user', JSON.stringify(u));
-      return u;
-    }
-    try {
-      const saved = JSON.parse(localStorage.getItem('baza_rosta_user'));
-      if (saved && saved.tilda_user_id) return saved;
-    } catch (e) {}
+    if (uid) { const u = { tilda_user_id: uid, email: params.get('email') || '', name: params.get('name') || 'Пользователь' }; localStorage.setItem('baza_rosta_user', JSON.stringify(u)); return u; }
+    try { const saved = JSON.parse(localStorage.getItem('baza_rosta_user')); if (saved && saved.tilda_user_id) return saved; } catch (e) {}
     let localUid = localStorage.getItem('baza_rosta_guest_uid');
-    if (!localUid) {
-      localUid = 'guest-' + Date.now();
-      localStorage.setItem('baza_rosta_guest_uid', localUid);
-    }
+    if (!localUid) { localUid = 'guest-' + Date.now(); localStorage.setItem('baza_rosta_guest_uid', localUid); }
     return { tilda_user_id: localUid, email: 'guest@local.com', name: 'Гость' };
   }
-
   let CURRENT_USER = window.CURRENT_USER || getCurrentUser();
-  let testScores = {};
-
   async function initUserProfile() {
-    // Tilda подгружает member-объект асинхронно — ждём его до 6 секунд,
-    // иначе каждый браузер получает своего «гостя» и память не синхронизируется
-    for (let i = 0; i < 20; i++) {
-      if (window.tilda_member && (window.tilda_member.user_id || window.tilda_member.id)) break;
-      if (String(CURRENT_USER.tilda_user_id).indexOf('guest-') !== 0) break; // юзер уже известен (URL/localStorage)
-      await new Promise(r => setTimeout(r, 300));
-    }
+    for (let i = 0; i < 20; i++) { if (window.tilda_member && (window.tilda_member.user_id || window.tilda_member.id)) break; if (String(CURRENT_USER.tilda_user_id).indexOf('guest-') !== 0) break; await new Promise(r => setTimeout(r, 300)); }
     CURRENT_USER = getCurrentUser();
-    var un = document.getElementById('userName');
-    var pn = document.getElementById('practiceUserName');
-    if (un) un.textContent = CURRENT_USER.name;
-    if (pn) pn.textContent = CURRENT_USER.name;
-    try {
-      await fetch(API_URL + '/api/user/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(CURRENT_USER)
-      });
-      loadChatHistory();
-      loadPracticeHistory();
-    } catch (e) {
-      console.error('Ошибка инициализации:', e);
-    }
+    var un = document.getElementById('userName'); var pn = document.getElementById('practiceUserName');
+    if (un) un.textContent = CURRENT_USER.name; if (pn) pn.textContent = CURRENT_USER.name;
+    try { await fetch(API_URL + '/api/user/init', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CURRENT_USER) }); loadChatHistory(); loadPracticeHistory(); } catch (e) { console.error(e); }
   }
   window.addEventListener('DOMContentLoaded', initUserProfile);
 </script>
-
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -86,35 +43,31 @@
   --top-h:60px;--bot-h:72px;
   --ease:cubic-bezier(.22,.61,.36,1);--ease-out:cubic-bezier(.16,1,.3,1);
 }
-
 .nav-item[data-tab="consult"]{--nav-c1:#E08A60;--nav-c2:#C96E42;--nav-glow:rgba(224,138,96,.35);--nav-muted:rgba(224,138,96,.12)}
 .nav-item[data-tab="practice"]{--nav-c1:#5D9E7A;--nav-c2:#3E8560;--nav-glow:rgba(93,158,122,.35);--nav-muted:rgba(93,158,122,.12)}
 .nav-item[data-tab="recom"]{--nav-c1:#D4A030;--nav-c2:#B8880E;--nav-glow:rgba(212,160,48,.35);--nav-muted:rgba(212,160,48,.12)}
 .nav-item[data-tab="diary"]{--nav-c1:#C47890;--nav-c2:#A85A74;--nav-glow:rgba(196,120,144,.35);--nav-muted:rgba(196,120,144,.12)}
-
+.nav-item[data-tab="results"]{--nav-c1:#5B8DB8;--nav-c2:#3D729E;--nav-glow:rgba(91,141,184,.35);--nav-muted:rgba(91,141,184,.12)}
 html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;background:var(--bg)}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text2);overflow:hidden;height:100vh;height:100dvh;line-height:1.65;user-select:none;-webkit-user-select:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.005em}
 a{text-decoration:none;color:inherit}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;transition:all .3s var(--ease)}
-
 .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--top-h);display:flex;align-items:center;gap:14px;padding:0 20px;background:rgba(255,255,255,.85);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-bottom:1px solid var(--card-border)}
 .back-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--card-border);font-size:18px;color:var(--beige-dark);transition:all .35s var(--ease);flex-shrink:0;box-shadow:var(--shadow-xs)}
 .back-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(183,155,134,.22);border-color:rgba(183,155,134,.3)}
-.top-bar-title{font-weight:600;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em;transition:opacity .3s var(--ease)}
+.top-bar-title{font-weight:600;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
 .top-bar-badge{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.02em;color:#fff;padding:5px 14px;border-radius:var(--radius-pill);transition:all .4s var(--ease);flex-shrink:0}
 .top-bar-badge.badge-chat{background:linear-gradient(135deg,#E08A60,#C96E42);box-shadow:0 4px 14px rgba(224,138,96,.3)}
 .top-bar-badge.badge-practice{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 14px rgba(93,158,122,.3)}
 .top-bar-badge .ai-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:pdot 2.4s ease-in-out infinite}
-
 .screens{position:fixed;top:var(--top-h);bottom:var(--bot-h);left:0;right:0;overflow:hidden}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .5s var(--ease),transform .5s var(--ease);-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg)}
 .screen::-webkit-scrollbar{display:none}
 .screen.active{opacity:1;transform:translateY(0);pointer-events:auto}
-
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--bot-h);display:flex;align-items:stretch;background:rgba(255,255,255,.92);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border-top:1px solid var(--card-border);padding-bottom:env(safe-area-inset-bottom,0)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;color:var(--nav-c1);opacity:.4;transition:all .4s var(--ease);-webkit-tap-highlight-color:transparent}
 .nav-item .nav-ico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:50%;transition:all .4s var(--ease);background:var(--nav-muted)}
-.nav-item .nav-lbl{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;transition:all .4s var(--ease)}
+.nav-item .nav-lbl{font-size:9px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;transition:all .4s var(--ease)}
 .nav-item.active{opacity:1}
 .nav-item.active .nav-ico{background:linear-gradient(135deg,var(--nav-c1),var(--nav-c2));color:#fff;transform:scale(1.15) translateY(-3px);box-shadow:0 6px 22px 4px var(--nav-glow)}
 .nav-item.active .nav-lbl{font-weight:700;color:var(--nav-c1)}
@@ -122,18 +75,70 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .nav-item:not(.active):hover .nav-ico{transform:scale(1.05)}
 .nav-item::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2.5px;border-radius:0 0 4px 4px;background:linear-gradient(90deg,var(--nav-c1),var(--nav-c2));transform:scaleX(0);transition:transform .4s var(--ease)}
 .nav-item.active::before{transform:scaleX(1)}
-
 .pad{padding:28px 20px 48px}
 .section-tag{display:inline-block;padding:5px 16px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;margin-bottom:16px;background:var(--beige-soft);color:var(--beige-dark);border:1px solid rgba(183,155,134,.18)}
+.section-tag.tag-blue{background:rgba(91,141,184,.1);color:#3D729E;border-color:rgba(91,141,184,.2)}
 .sh2{font-size:24px;font-weight:700;line-height:1.2;margin-bottom:12px;letter-spacing:-.025em;color:var(--text)}
 .sh2 .grad{background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sh2 .grad-blue{background:linear-gradient(135deg,#3D729E,#5B8DB8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sp{font-size:14px;color:var(--text3);line-height:1.7;margin-bottom:24px;max-width:560px}
-
 .empty-state{text-align:center;padding:44px 20px;background:var(--beige-soft);border-radius:var(--radius-sm);border:1px solid rgba(183,155,134,.18);margin-top:12px}
+.empty-state.es-blue{background:rgba(91,141,184,.06);border-color:rgba(91,141,184,.15)}
 .empty-state .es-ico{font-size:44px;margin-bottom:14px}
 .empty-state h4{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
 .empty-state p{font-size:13px;color:var(--text3);max-width:300px;margin:0 auto;line-height:1.6}
 
+/* === Попап === */
+.popup-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .35s var(--ease)}
+.popup-overlay.visible{opacity:1;pointer-events:auto}
+.popup-bg{position:absolute;inset:0;background:rgba(46,42,38,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.popup-card{position:relative;width:100%;max-width:420px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-lg);overflow:hidden;transform:translateY(24px) scale(.96);transition:transform .45s var(--ease-out)}
+.popup-overlay.visible .popup-card{transform:translateY(0) scale(1)}
+.popup-header{padding:28px 24px 0;text-align:center}
+.popup-header .ph-ico{width:64px;height:64px;margin:0 auto 16px;border-radius:20px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:32px}
+.popup-header h3{font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.02em}
+.popup-header p{font-size:13px;color:var(--text3);line-height:1.6;max-width:320px;margin:0 auto}
+.popup-body{padding:20px 24px 28px}
+.popup-example{background:var(--bg2);border:1px solid var(--card-border);border-radius:var(--radius-xs);padding:14px 16px;margin-bottom:16px}
+.popup-example .pe-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:10px}
+.popup-example-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--card);border:1px solid var(--card-border);margin-bottom:8px;cursor:pointer;transition:all .25s var(--ease)}
+.popup-example-item:last-child{margin-bottom:0}
+.popup-example-item:hover{border-color:rgba(183,155,134,.35);transform:translateX(4px)}
+.popup-example-item .pei-ico{width:36px;height:36px;min-width:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--beige-soft)}
+.popup-example-item .pei-text{flex:1;min-width:0}
+.popup-example-item .pei-cmd{font-size:13px;font-weight:700;color:var(--text);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.popup-example-item .pei-name{font-size:11px;color:var(--text3)}
+.popup-example-item .pei-arrow{color:var(--text4);font-size:16px;flex-shrink:0}
+.popup-close{width:100%;padding:15px;border-radius:var(--radius-pill);background:var(--bg2);border:1px solid var(--card-border);color:var(--text);font-size:14px;font-weight:600;text-align:center;transition:all .25s var(--ease)}
+.popup-close:hover{background:var(--bg3);border-color:var(--card-border-hover)}
+
+.go-results-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border-radius:var(--radius-pill);background:linear-gradient(135deg,#5B8DB8,#3D729E);color:#fff;font-size:14px;font-weight:700;letter-spacing:.01em;margin-bottom:20px;box-shadow:0 8px 24px rgba(91,141,184,.3);transition:all .35s var(--ease)}
+.go-results-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(91,141,184,.38)}
+.go-results-btn:active{transform:translateY(0)}
+.go-results-btn svg{flex-shrink:0}
+.result-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px;margin-bottom:12px;box-shadow:var(--shadow-xs);transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s var(--ease);position:relative;overflow:hidden}
+.result-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--card-border-hover)}
+.result-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#5B8DB8,#3D729E);opacity:0;transition:opacity .35s var(--ease)}
+.result-card:hover::before{opacity:1}
+.rc-top{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.rc-ico{width:48px;height:48px;min-width:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(91,141,184,.08)}
+.rc-info{flex:1;min-width:0}
+.rc-info h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-info .rc-date{font-size:11px;color:var(--text4);font-weight:600}
+.rc-score-row{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.rc-score-num{font-size:32px;font-weight:800;line-height:1;background:linear-gradient(135deg,#3D729E,#5B8DB8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.rc-score-total{font-size:13px;color:var(--text3);font-weight:500}
+.rc-bar-wrap{flex:1;height:8px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.rc-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#3D729E,#5B8DB8,#7AAED0);transition:width .8s var(--ease)}
+.rc-interpretation{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;letter-spacing:.02em}
+.rc-interpretation.level-low{background:rgba(93,158,122,.1);color:#3E8560}
+.rc-interpretation.level-mid{background:rgba(212,160,48,.1);color:#B8880E}
+.rc-interpretation.level-high{background:rgba(224,100,80,.1);color:#C45040}
+.rc-interpretation.level-default{background:var(--bg2);color:var(--text3)}
+.results-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.rs-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:18px 16px;text-align:center;box-shadow:var(--shadow-xs)}
+.rs-card .rs-val{font-size:28px;font-weight:800;background:linear-gradient(135deg,#3D729E,#5B8DB8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:6px}
+.rs-card .rs-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
 .test-item{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--card-border);margin-bottom:10px;cursor:pointer;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s var(--ease);box-shadow:var(--shadow-xs)}
 .test-item:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--card-border-hover)}
 .test-item .ti-ico{width:44px;height:44px;min-width:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--beige-soft)}
@@ -141,7 +146,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .test-item .ti-info h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .test-item .ti-info p{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .test-item .ti-arrow{color:var(--text4);font-size:18px;flex-shrink:0}
-
 .test-pass{display:none;padding:32px 20px 48px}
 .test-pass.active{display:block;animation:fadeUp .6s var(--ease-out) both}
 .tp-progress{margin-bottom:24px}
@@ -164,7 +168,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .tp-result .tr-ico{width:80px;height:80px;margin:0 auto 20px;border-radius:22px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:40px}
 .tp-result h3{font-size:22px;font-weight:700;color:var(--text);margin-bottom:10px}
 .tr-score{font-size:44px;font-weight:700;background:linear-gradient(135deg,var(--beige-dark),var(--beige));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
-
 .chat-wrap{display:flex;flex-direction:column;height:100%}
 .chat-messages{flex:1;overflow-y:auto;padding:20px 16px 12px;scrollbar-width:none}
 .chat-messages::-webkit-scrollbar{display:none}
@@ -186,18 +189,15 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .chat-input:focus{border-color:rgba(183,155,134,.4);box-shadow:0 0 0 4px rgba(183,155,134,.08)}
 .chat-send{width:46px;height:46px;min-width:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--beige),var(--beige-dark));color:#fff;font-size:18px;flex-shrink:0;box-shadow:0 6px 16px rgba(183,155,134,.28);transition:all .3s var(--ease)}
 .chat-send:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 8px 22px rgba(183,155,134,.35)}
-
 #s-practice .chat-msg.cm-user .cm-bub{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 14px rgba(93,158,122,.25)}
 #s-practice .chat-msg.cm-ai .cm-av{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 4px 12px rgba(93,158,122,.22)}
 #s-practice .chat-send{background:linear-gradient(135deg,#5D9E7A,#3E8560);box-shadow:0 6px 16px rgba(93,158,122,.3)}
 #s-practice .chat-send:hover{box-shadow:0 8px 22px rgba(93,158,122,.4)}
 #s-practice .chat-input:focus{border-color:rgba(93,158,122,.4);box-shadow:0 0 0 4px rgba(93,158,122,.08)}
-
 .recom-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px;margin-bottom:12px;box-shadow:var(--shadow-xs)}
 .recom-card h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4}
 .recom-card p{font-size:13px;color:var(--text3);line-height:1.6}
 .recom-date{font-size:11px;color:var(--text4);margin-top:12px;font-weight:600}
-
 .diary-hero{position:relative;padding:36px 24px 28px;text-align:center;overflow:hidden;border-radius:var(--radius);margin-bottom:20px;background:linear-gradient(165deg,var(--beige-soft),var(--beige-mist));border:1px solid rgba(183,155,134,.18)}
 .diary-hero .dh-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.32;pointer-events:none}
 .diary-hero .dh-o1{width:160px;height:160px;background:#E8D9C9;top:-60px;left:-40px}
@@ -209,8 +209,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .status-val .sv-n{font-size:26px;font-weight:700;color:var(--text)}
 .diary-hero h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;position:relative;z-index:1}
 .diary-hero p{font-size:13px;color:var(--text3);position:relative;z-index:1;max-width:320px;margin:0 auto;line-height:1.5}
-
-/* Сетка метрик 2x2 */
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .metric-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:20px 16px;box-shadow:var(--shadow-xs);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
 .metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
@@ -223,11 +221,8 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .mc-bar{height:6px;background:var(--bg2);border-radius:99px;overflow:hidden}
 .mc-bar-fill{height:100%;border-radius:99px;transition:width 1s var(--ease);background:linear-gradient(90deg,var(--beige-dark),var(--beige-light))}
 .mc-bar-fill.mc-bar-gold{background:linear-gradient(90deg,#B8880E,#D4A030,#E8B830)}
-
-/* Мотивация: такой же размер, по центру */
 .mot-center{display:flex;justify-content:center;margin-bottom:20px}
 .mot-center .metric-card{width:calc(50% - 6px)}
-
 .trend-block{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:24px 20px;margin-bottom:20px;box-shadow:var(--shadow-xs)}
 .trend-block h4{font-size:15px;font-weight:700;color:var(--text);margin-bottom:20px}
 .trend-avg-wrap{display:flex;align-items:center;gap:24px}
@@ -240,11 +235,9 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .ta-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3}
 .ta-sub{font-size:13px;color:var(--text3);line-height:1.5}
 .ta-empty{text-align:center;padding:20px 0;color:var(--text3);font-size:13px;line-height:1.6}
-
 @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 @keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-
 @media(min-width:900px){
   body{background:var(--bg3)}
   .top-bar{left:50%;right:auto;transform:translateX(-50%);width:820px;padding:0 32px;height:64px}
@@ -254,36 +247,42 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 </style>
 </head>
 <body>
-
 <svg style="position:absolute;width:0;height:0">
   <defs>
-    <linearGradient id="rGr" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#A6876F"/><stop offset="50%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B79B86"/>
-    </linearGradient>
-    <linearGradient id="tGr" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#C47890"/><stop offset="50%" stop-color="#D8A0B4"/><stop offset="100%" stop-color="#A85A74"/>
-    </linearGradient>
+    <linearGradient id="rGr" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#A6876F"/><stop offset="50%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B79B86"/></linearGradient>
+    <linearGradient id="tGr" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#C47890"/><stop offset="50%" stop-color="#D8A0B4"/><stop offset="100%" stop-color="#A85A74"/></linearGradient>
   </defs>
 </svg>
+
+<!-- Попап с инструкцией — показывается ТОЛЬКО из чата -->
+<div class="popup-overlay" id="testPopup">
+  <div class="popup-bg" onclick="closeTestPopup()"></div>
+  <div class="popup-card">
+    <div class="popup-header">
+      <div class="ph-ico">🧪</div>
+      <h3>Доступные тесты</h3>
+      <p>Напишите в чат команду ниже, чтобы сразу начать нужный тест:</p>
+    </div>
+    <div class="popup-body">
+      <div class="popup-example">
+        <div class="pe-label">Скопируйте или нажмите:</div>
+        <div id="popupTestList"></div>
+      </div>
+      <button class="popup-close" onclick="closeTestPopup()">Понятно, закрыть</button>
+    </div>
+  </div>
+</div>
 
 <div class="top-bar">
   <a href="https://bazarosta.tilda.ws/" class="back-btn">←</a>
   <div class="top-bar-title" id="topTitle">ИИ Кабинет</div>
-  <div class="top-bar-badge badge-chat" id="topBadge">
-    <span class="ai-dot"></span>
-    <span id="topBadgeText">Елизавета</span>
-  </div>
+  <div class="top-bar-badge badge-chat" id="topBadge"><span class="ai-dot"></span><span id="topBadgeText">Елизавета</span></div>
 </div>
-
 <div class="screens">
-
   <div class="screen active" id="s-consult">
     <div class="chat-wrap">
       <div class="chat-messages" id="consultMsgs">
-        <div class="chat-msg cm-ai">
-          <div class="cm-av">🤖</div>
-          <div class="cm-bub">Здравствуйте, <span id="userName"></span>! Я Елизавета. Расскажите, что вас беспокоит, или напишите «пройти тест».</div>
-        </div>
+        <div class="chat-msg cm-ai"><div class="cm-av">🤖</div><div class="cm-bub">Здравствуйте, <span id="userName"></span>! Я Елизавета. Расскажите, что вас беспокоит, или напишите «пройти тест».</div></div>
       </div>
       <div class="chat-input-row">
         <input class="chat-input" id="consultInput" type="text" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter')sendMsg()">
@@ -291,14 +290,10 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       </div>
     </div>
   </div>
-
   <div class="screen" id="s-practice">
     <div class="chat-wrap">
       <div class="chat-messages" id="practiceMsgs">
-        <div class="chat-msg cm-ai">
-          <div class="cm-av">📝</div>
-          <div class="cm-bub">Здравствуйте, <span id="practiceUserName"></span>! Здесь вы можете сдать практическое задание. Опишите, что вы сделали, какие выводы сделали, или задайте вопрос по практике.</div>
-        </div>
+        <div class="chat-msg cm-ai"><div class="cm-av">📝</div><div class="cm-bub">Здравствуйте, <span id="practiceUserName"></span>! Здесь вы можете сдать практическое задание.</div></div>
       </div>
       <div class="chat-input-row">
         <input class="chat-input" id="practiceInput" type="text" placeholder="Опишите вашу практику..." onkeydown="if(event.key==='Enter')sendPracticeMsg()">
@@ -306,32 +301,28 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       </div>
     </div>
   </div>
-
   <div class="screen" id="s-recom">
     <div class="pad">
       <div class="section-tag">ИИ Аналитика</div>
       <h2 class="sh2">Рекомендации <span class="grad">от ИИ</span></h2>
       <p class="sp">Персональные рекомендации на основе вашего состояния.</p>
-      <div id="recomEmpty" class="empty-state">
-        <div class="es-ico">🪄</div>
-        <h4>Пока нет рекомендаций</h4>
-        <p>Они появятся автоматически после общения с Елизаветой.</p>
-      </div>
+      <div id="recomEmpty" class="empty-state"><div class="es-ico">🪄</div><h4>Пока нет рекомендаций</h4><p>Они появятся автоматически после общения с Елизаветой.</p></div>
       <div id="recomList"></div>
     </div>
   </div>
-
   <div class="screen" id="s-tests">
     <div class="pad" id="testsListPad">
       <div class="section-tag">Диагностика</div>
       <h2 class="sh2">Доступные тесты</h2>
+      <p class="sp">Выберите тест, чтобы начать прохождение.</p>
+      <button class="go-results-btn" onclick="goTab('results')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+        Мои результаты тестов
+      </button>
       <div id="testList"></div>
     </div>
     <div class="test-pass" id="testPass">
-      <div class="tp-progress">
-        <div class="tp-bar"><div class="tp-fill" id="tpFill" style="width:0%"></div></div>
-        <div class="tp-info"><span id="tpStep">Вопрос 1</span><span id="tpPct">0%</span></div>
-      </div>
+      <div class="tp-progress"><div class="tp-bar"><div class="tp-fill" id="tpFill" style="width:0%"></div></div><div class="tp-info"><span id="tpStep">Вопрос 1</span><span id="tpPct">0%</span></div></div>
       <div class="tp-q-num" id="tpQNum">Вопрос 1</div>
       <div class="tp-question" id="tpQuestion"></div>
       <div class="tp-options" id="tpOptions"></div>
@@ -350,13 +341,32 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       </div>
     </div>
   </div>
-
+  <div class="screen" id="s-results">
+    <div class="pad">
+      <div class="section-tag tag-blue">История</div>
+      <h2 class="sh2">Результаты <span class="grad-blue">тестов</span></h2>
+      <p class="sp">Ваша история прохождения диагностик из базы данных.</p>
+      <div class="results-summary" id="resultsSummary" style="display:none">
+        <div class="rs-card"><div class="rs-val" id="rsTotal">0</div><div class="rs-label">Всего тестов</div></div>
+        <div class="rs-card"><div class="rs-val" id="rsAvg">—</div><div class="rs-label">Средний балл</div></div>
+      </div>
+      <div id="resultsEmpty" class="empty-state es-blue">
+        <div class="es-ico">📊</div>
+        <h4>Пока нет результатов</h4>
+        <p>Пройдите тест, чтобы здесь появились данные.</p>
+        <button class="go-results-btn" style="margin-top:20px" onclick="goTab('tests')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg>
+          Перейти к тестам
+        </button>
+      </div>
+      <div id="resultsList"></div>
+    </div>
+  </div>
   <div class="screen" id="s-diary">
     <div class="pad">
       <div class="section-tag">Аналитика</div>
       <h2 class="sh2">Дневник <span class="grad">состояния</span></h2>
       <p class="sp">Показатели на основе истории ваших сообщений.</p>
-
       <div class="diary-hero">
         <div class="dh-orb dh-o1"></div>
         <div class="status-ring">
@@ -366,215 +376,207 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
         <h3 id="svTitle">Загрузка...</h3>
         <p id="svDesc">Елизавета анализирует ваши данные</p>
       </div>
-
-      <!-- 4 метрики 2x2 -->
       <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="mc-head"><div class="mc-left"><span class="mc-ico">😊</span><span class="mc-label">Настроение</span></div></div>
-          <div class="mc-val" id="moodVal">—</div>
-          <div class="mc-bar"><div class="mc-bar-fill" id="moodBar" style="width:0%"></div></div>
-        </div>
-        <div class="metric-card">
-          <div class="mc-head"><div class="mc-left"><span class="mc-ico">⚡</span><span class="mc-label">Энергия</span></div></div>
-          <div class="mc-val" id="energyVal">—</div>
-          <div class="mc-bar"><div class="mc-bar-fill" id="energyBar" style="width:0%"></div></div>
-        </div>
-        <div class="metric-card">
-          <div class="mc-head"><div class="mc-left"><span class="mc-ico">🔥</span><span class="mc-label">Стресс</span></div></div>
-          <div class="mc-val" id="stressVal">—</div>
-          <div class="mc-bar"><div class="mc-bar-fill" id="stressBar" style="width:0%"></div></div>
-        </div>
-        <div class="metric-card">
-          <div class="mc-head"><div class="mc-left"><span class="mc-ico">💪</span><span class="mc-label">Уверенность</span></div></div>
-          <div class="mc-val" id="confVal">—</div>
-          <div class="mc-bar"><div class="mc-bar-fill" id="confBar" style="width:0%"></div></div>
-        </div>
+        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">😊</span><span class="mc-label">Настроение</span></div></div><div class="mc-val" id="moodVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="moodBar" style="width:0%"></div></div></div>
+        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">⚡</span><span class="mc-label">Энергия</span></div></div><div class="mc-val" id="energyVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="energyBar" style="width:0%"></div></div></div>
+        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">🔥</span><span class="mc-label">Стресс</span></div></div><div class="mc-val" id="stressVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="stressBar" style="width:0%"></div></div></div>
+        <div class="metric-card"><div class="mc-head"><div class="mc-left"><span class="mc-ico">💪</span><span class="mc-label">Уверенность</span></div></div><div class="mc-val" id="confVal">—</div><div class="mc-bar"><div class="mc-bar-fill" id="confBar" style="width:0%"></div></div></div>
       </div>
-
-      <!-- Мотивация: тот же размер, по центру -->
       <div class="mot-center">
         <div class="metric-card">
-          <div class="mc-head">
-            <div class="mc-left">
-              <span class="mc-ico" style="background:linear-gradient(135deg,rgba(212,160,48,.15),rgba(184,136,14,.1))">🎯</span>
-              <span class="mc-label">Мотивация</span>
-            </div>
-            <span class="mc-badge" id="motBadge">—</span>
-          </div>
+          <div class="mc-head"><div class="mc-left"><span class="mc-ico" style="background:linear-gradient(135deg,rgba(212,160,48,.15),rgba(184,136,14,.1))">🎯</span><span class="mc-label">Мотивация</span></div><span class="mc-badge" id="motBadge">—</span></div>
           <div class="mc-val" id="motVal">—</div>
           <div class="mc-bar" style="height:8px"><div class="mc-bar-fill mc-bar-gold" id="motBar" style="width:0%"></div></div>
         </div>
       </div>
-
-      <div class="trend-block">
-        <h4>📈 Динамика</h4>
-        <div id="trendContent">
-          <div class="ta-empty">Загрузка данных...</div>
-        </div>
-      </div>
+      <div class="trend-block"><h4>📈 Динамика</h4><div id="trendContent"><div class="ta-empty">Загрузка данных...</div></div></div>
     </div>
   </div>
-
 </div>
-
 <div class="bottom-nav">
-  <div class="nav-item active" data-tab="consult" onclick="goTab('consult')">
-    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/></svg></div>
-    <div class="nav-lbl">Чат</div>
-  </div>
-  <div class="nav-item" data-tab="practice" onclick="goTab('practice')">
-    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg></div>
-    <div class="nav-lbl">Практика</div>
-  </div>
-  <div class="nav-item" data-tab="recom" onclick="goTab('recom')">
-    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg></div>
-    <div class="nav-lbl">Реком.</div>
-  </div>
-  <div class="nav-item" data-tab="diary" onclick="goTab('diary')">
-    <div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg></div>
-    <div class="nav-lbl">Дневник</div>
-  </div>
+  <div class="nav-item active" data-tab="consult" onclick="goTab('consult')"><div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5c0 4-3.6 7.4-8 7.4-1.1 0-2.1-.2-3.1-.6L4 20l1.7-4.9C4.6 13.9 4 12.5 4 11c0-4 3.6-7 8-7s8 3.5 8 7.5Z"/></svg></div><div class="nav-lbl">Чат</div></div>
+  <div class="nav-item" data-tab="practice" onclick="goTab('practice')"><div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg></div><div class="nav-lbl">Практика</div></div>
+  <div class="nav-item" data-tab="recom" onclick="goTab('recom')"><div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2C8.5 2 6 4.5 6 8c0 2.2 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-3 3-5.2 0-3.5-2.5-6-6-6Z"/></svg></div><div class="nav-lbl">Реком.</div></div>
+  <div class="nav-item" data-tab="results" onclick="goTab('results')"><div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><div class="nav-lbl">Результаты</div></div>
+  <div class="nav-item" data-tab="diary" onclick="goTab('diary')"><div class="nav-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v12"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg></div><div class="nav-lbl">Дневник</div></div>
 </div>
-
 <script>
-const tests = [
-  {name:'Шкала тревожности', ico:'😰', info:'5 вопросов · 3 мин', questions:[
+var tests=[
+  {name:'Шкала тревожности',ico:'😰',info:'5 вопросов · 3 мин',questions:[
     {q:'Я чувствую спокойствие',opts:['Почти никогда','Иногда','Часто','Почти всегда'],correct:3},
     {q:'Мне трудно расслабиться',opts:['Почти всегда','Часто','Иногда','Почти никогда'],correct:3},
     {q:'Я чувствую нервозность',opts:['Почти всегда','Часто','Иногда','Почти никогда'],correct:3},
     {q:'Я беспокоюсь о возможных неприятностях',opts:['Очень часто','Часто','Иногда','Редко'],correct:3},
     {q:'Я чувствую себя спокойным и уравновешенным',opts:['Почти никогда','Иногда','Часто','Почти всегда'],correct:3}
-  ], type:'simple', results:{low:{ico:'✅',title:'Низкая тревожность',desc:'Ваш уровень тревоги в норме.'},mid:{ico:'⚡',title:'Умеренная тревожность',desc:'Есть признаки тревожности.'},high:{ico:'🔴',title:'Высокая тревожность',desc:'Рекомендуем практики.'}}},
-  {name:'Опросник выгорания', ico:'😴', info:'5 вопросов · 3 мин', questions:[
+  ],type:'simple',results:{low:{ico:'✅',title:'Низкая тревожность',desc:'Ваш уровень тревоги в норме.'},mid:{ico:'⚡',title:'Умеренная тревожность',desc:'Есть признаки тревожности.'},high:{ico:'🔴',title:'Высокая тревожность',desc:'Рекомендуем практики.'}}},
+  {name:'Опросник выгорания',ico:'😴',info:'5 вопросов · 3 мин',questions:[
     {q:'Я чувствую истощение',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
     {q:'Утром мне не хочется вставать',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
     {q:'Я чувствую, что работаю слишком много',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
     {q:'Мне стало труднее справляться с задачами',opts:['Никогда','Редко','Иногда','Часто'],correct:0},
     {q:'Я чувствую равнодушие к работе',opts:['Никогда','Редко','Иногда','Часто'],correct:0}
-  ], type:'simple', results:{low:{ico:'✅',title:'Низкий риск',desc:'Вы справляетесь хорошо.'},mid:{ico:'⚡',title:'Умеренный риск',desc:'Есть признаки утомления.'},high:{ico:'🔴',title:'Высокий риск',desc:'Обратите внимание на отдых.'}}}
+  ],type:'simple',results:{low:{ico:'✅',title:'Низкий риск',desc:'Вы справляетесь хорошо.'},mid:{ico:'⚡',title:'Умеренный риск',desc:'Есть признаки утомления.'},high:{ico:'🔴',title:'Высокий риск',desc:'Обратите внимание на отдых.'}}}
 ];
 
-let curTest = -1, curQ = 0, answers = [];
+var curTest=-1,curQ=0,answers=[];
+document.getElementById('userName').textContent=CURRENT_USER.name;
+document.getElementById('practiceUserName').textContent=CURRENT_USER.name;
 
-document.getElementById('userName').textContent = CURRENT_USER.name;
-document.getElementById('practiceUserName').textContent = CURRENT_USER.name;
+var tabTitles={consult:'ИИ Кабинет',practice:'Практика',recom:'Рекомендации',diary:'Дневник состояния',tests:'Тесты',results:'Результаты тестов'};
+var tabBadge={consult:{text:'Елизавета',cls:'badge-chat'},practice:{text:'Практика',cls:'badge-practice'},recom:null,diary:null,tests:null,results:null};
 
-const tabTitles = { consult:'ИИ Кабинет', practice:'Практика', recom:'Рекомендации', diary:'Дневник состояния', tests:'Тесты' };
-const tabBadge = { consult:{text:'Елизавета',cls:'badge-chat'}, practice:{text:'Практика',cls:'badge-practice'}, recom:null, diary:null, tests:null };
-
-function goTab(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const screen = document.getElementById('s-' + name);
-  if (screen) screen.classList.add('active');
-  const nav = document.querySelector('.nav-item[data-tab="' + name + '"]');
-  if (nav) nav.classList.add('active');
-  document.getElementById('topTitle').textContent = tabTitles[name] || 'ИИ Кабинет';
-  const badge = document.getElementById('topBadge');
-  const info = tabBadge[name];
-  if (info) { badge.style.display='flex'; badge.className='top-bar-badge '+info.cls; document.getElementById('topBadgeText').textContent=info.text; }
-  else { badge.style.display='none'; }
-  if (name === 'diary') loadDiaryData();
-  if (name === 'tests') renderTestList();
-  if (name === 'recom') loadRecommendations();
+function goTab(name){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  var screen=document.getElementById('s-'+name);
+  if(screen)screen.classList.add('active');
+  var nav=document.querySelector('.nav-item[data-tab="'+name+'"]');
+  if(nav)nav.classList.add('active');
+  document.getElementById('topTitle').textContent=tabTitles[name]||'ИИ Кабинет';
+  var badge=document.getElementById('topBadge');
+  var info=tabBadge[name];
+  if(info){badge.style.display='flex';badge.className='top-bar-badge '+info.cls;document.getElementById('topBadgeText').textContent=info.text}
+  else{badge.style.display='none'}
+  if(name==='diary')loadDiaryData();
+  if(name==='tests')renderTestList();
+  if(name==='recom')loadRecommendations();
+  if(name==='results')loadTestResults();
 }
 
-function calcOverall(h) {
-  /* Только реально оценённые метрики; стресс инвертируется. Нет данных → null */
-  const known = [h.mood, h.energy, h.stress == null ? null : 100 - h.stress, h.confidence, h.motivation].filter(v => v != null);
-  return known.length ? known.reduce((a, b) => a + b, 0) / known.length : null;
+/* === Попап — только для чата === */
+function openTestPopup(){
+  var list=document.getElementById('popupTestList');list.innerHTML='';
+  tests.forEach(function(t,i){
+    var cmd='пройти тест '+t.name;
+    var item=document.createElement('div');item.className='popup-example-item';
+    item.innerHTML='<div class="pei-ico">'+t.ico+'</div><div class="pei-text"><div class="pei-cmd">'+escHtml(cmd)+'</div><div class="pei-name">'+escHtml(t.info)+'</div></div><span class="pei-arrow">→</span>';
+    item.onclick=function(){
+      closeTestPopup();
+      document.getElementById('consultInput').value=cmd;
+      sendMsg();
+    };
+    list.appendChild(item);
+  });
+  document.getElementById('testPopup').classList.add('visible');
 }
-
-async function loadChatHistory() {
-  try {
-    const res = await fetch(API_URL + '/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.history && data.history.length > 0) {
-      const msgs = document.getElementById('consultMsgs');
-      msgs.innerHTML = '';
-      data.history.forEach(m => { addBubble('consultMsgs', m.role==='assistant'?'ai':'user', escHtml(m.content).replace(/\n/g,'<br>')); });
-    }
-  } catch(e) { console.error(e); }
-}
-
-async function sendMsg() {
-  const input = document.getElementById('consultInput');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-  addBubble('consultMsgs','user',escHtml(text));
-  if (text.toLowerCase().includes('пройти тест')) {
-    addBubble('consultMsgs','ai','Открываю раздел тестов. Выберите подходящий 👇');
-    setTimeout(()=>goTab('tests'),800);
-    fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,message:text})});
-    return;
-  }
-  const tid='typ-'+Date.now(); showTyping('consultMsgs',tid);
-  let reply='';
-  try {
-    const res=await fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,message:text})});
-    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.details||e.error||'Статус '+res.status)}
-    const d=await res.json(); reply=d.reply||'Пустой ответ.';
-  }catch(e){reply='⚠️ Ошибка: '+e.message}
-  document.getElementById(tid).remove();
-  addBubble('consultMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
-}
-
-async function loadPracticeHistory() {
-  try {
-    const res=await fetch(API_URL+'/practice/history?tilda_user_id='+CURRENT_USER.tilda_user_id);
-    if(!res.ok)return;
-    const data=await res.json();
-    if(data.history&&data.history.length>0){
-      const msgs=document.getElementById('practiceMsgs');
-      msgs.innerHTML='';
-      data.history.forEach(m=>{addBubble('practiceMsgs',m.role==='assistant'?'ai':'user',escHtml(m.content).replace(/\n/g,'<br>'));});
-    }
-  }catch(e){console.error(e)}
-}
-
-async function sendPracticeMsg() {
-  const input=document.getElementById('practiceInput');
-  const text=input.value.trim();
-  if(!text)return;
-  input.value='';
-  addBubble('practiceMsgs','user',escHtml(text));
-  const tid='ptyp-'+Date.now(); showTyping('practiceMsgs',tid,'📝');
-  let reply='';
-  try {
-    const res=await fetch(API_URL+'/practice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,message:text})});
-    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.details||e.error||'Статус '+res.status)}
-    const d=await res.json(); reply=d.reply||'Пустой ответ.';
-  }catch(e){reply='⚠️ Ошибка: '+e.message}
-  document.getElementById(tid).remove();
-  addBubble('practiceMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
-}
+function closeTestPopup(){document.getElementById('testPopup').classList.remove('visible')}
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function addBubble(cid,type,html){
-  const m=document.getElementById(cid),d=document.createElement('div');
-  d.className='chat-msg cm-'+type;
-  const letter=escHtml((CURRENT_USER.name||'Вы').charAt(0).toUpperCase());
-  const aiAva=cid==='practiceMsgs'?'📝':'🤖';
+  var m=document.getElementById(cid),d=document.createElement('div');d.className='chat-msg cm-'+type;
+  var letter=escHtml((CURRENT_USER.name||'Вы').charAt(0).toUpperCase());
+  var aiAva=cid==='practiceMsgs'?'📝':'🤖';
   d.innerHTML='<div class="cm-av">'+(type==='ai'?aiAva:letter)+'</div><div class="cm-bub">'+html+'</div>';
   m.appendChild(d);m.scrollTop=m.scrollHeight;
 }
 function showTyping(cid,tid,avatar){
-  const msgs=document.getElementById(cid),td=document.createElement('div');
-  td.className='chat-msg cm-ai';td.id=tid;
+  var msgs=document.getElementById(cid),td=document.createElement('div');td.className='chat-msg cm-ai';td.id=tid;
   td.innerHTML='<div class="cm-av">'+(avatar||'🤖')+'</div><div class="cm-bub"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
   msgs.appendChild(td);msgs.scrollTop=msgs.scrollHeight;
 }
+function calcOverall(h){
+  var known=[h.mood,h.energy,h.stress==null?null:100-h.stress,h.confidence,h.motivation].filter(function(v){return v!=null});
+  return known.length?known.reduce(function(a,b){return a+b},0)/known.length:null;
+}
 
+/* === Поиск теста по названию === */
+function findTestByName(query){
+  var q=query.toLowerCase().trim();
+  for(var i=0;i<tests.length;i++){if(tests[i].name.toLowerCase().indexOf(q)!==-1)return i}
+  var words=q.split(/\s+/);
+  for(var i=0;i<tests.length;i++){
+    var name=tests[i].name.toLowerCase();var matched=true;
+    for(var w=0;w<words.length;w++){if(words[w].length<2)continue;if(name.indexOf(words[w])===-1){matched=false;break}}
+    if(matched&&words.filter(function(x){return x.length>=2}).length>0)return i;
+  }
+  return -1;
+}
+
+/* === Чат === */
+function loadChatHistory(){
+  fetch(API_URL+'/history?tilda_user_id='+CURRENT_USER.tilda_user_id).then(function(res){return res.json()}).then(function(data){
+    if(data.history&&data.history.length>0){
+      var msgs=document.getElementById('consultMsgs');msgs.innerHTML='';
+      data.history.forEach(function(m){addBubble('consultMsgs',m.role==='assistant'?'ai':'user',escHtml(m.content).replace(/\n/g,'<br>'))});
+    }
+  }).catch(function(e){console.error(e)});
+}
+
+function sendMsg(){
+  var input=document.getElementById('consultInput');
+  var text=input.value.trim();if(!text)return;input.value='';
+  addBubble('consultMsgs','user',escHtml(text));
+  var lowerText=text.toLowerCase();
+
+  /* Если есть «пройти тест» — обрабатываем отдельно */
+  if(lowerText.indexOf('пройти тест')!==-1){
+    var testName=text.replace(/пройти тест/gi,'').trim();
+
+    /* Нет названия — показать попап */
+    if(!testName||testName.length<2){
+      addBubble('consultMsgs','ai','Выберите тест из списка ниже 👇');
+      openTestPopup();
+      fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))});
+      return;
+    }
+
+    /* Есть название — ищем тест */
+    var idx=findTestByName(testName);
+    if(idx!==-1){
+      addBubble('consultMsgs','ai','Открываю тест «'+tests[idx].name+'». Приступаем! 🧪');
+      fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))});
+      setTimeout(function(){goTab('tests');startTest(idx)},600);
+      return;
+    }else{
+      addBubble('consultMsgs','ai','Не удалось найти тест «'+escHtml(testName)+'». Проверьте название и попробуйте ещё раз.');
+      openTestPopup();
+      fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))});
+      return;
+    }
+  }
+
+  /* Обычное сообщение — отправляем ИИ */
+  var tid='typ-'+Date.now();showTyping('consultMsgs',tid);
+  var reply='';
+  fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))}).then(function(res){
+    if(!res.ok)return res.json().then(function(e){throw new Error(e.details||e.error||'Статус '+res.status)});return res.json();
+  }).then(function(d){reply=d.reply||'Пустой ответ.'}).catch(function(e){reply='⚠️ Ошибка: '+e.message}).finally(function(){
+    var el=document.getElementById(tid);if(el)el.remove();
+    addBubble('consultMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
+  });
+}
+
+function loadPracticeHistory(){
+  fetch(API_URL+'/practice/history?tilda_user_id='+CURRENT_USER.tilda_user_id).then(function(res){return res.json()}).then(function(data){
+    if(data.history&&data.history.length>0){
+      var msgs=document.getElementById('practiceMsgs');msgs.innerHTML='';
+      data.history.forEach(function(m){addBubble('practiceMsgs',m.role==='assistant'?'ai':'user',escHtml(m.content).replace(/\n/g,'<br>'))});
+    }
+  }).catch(function(e){console.error(e)});
+}
+
+function sendPracticeMsg(){
+  var input=document.getElementById('practiceInput');var text=input.value.trim();if(!text)return;input.value='';
+  addBubble('practiceMsgs','user',escHtml(text));
+  var tid='ptyp-'+Date.now();showTyping('practiceMsgs',tid,'📝');var reply='';
+  fetch(API_URL+'/practice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))}).then(function(res){
+    if(!res.ok)return res.json().then(function(e){throw new Error(e.details||e.error||'Статус '+res.status)});return res.json();
+  }).then(function(d){reply=d.reply||'Пустой ответ.'}).catch(function(e){reply='⚠️ Ошибка: '+e.message}).finally(function(){
+    var el=document.getElementById(tid);if(el)el.remove();
+    addBubble('practiceMsgs','ai',escHtml(reply).replace(/\n/g,'<br>'));
+  });
+}
+
+/* === Проходжение тестов === */
 function renderTestList(){
-  const el=document.getElementById('testList');el.innerHTML='';
-  tests.forEach((t,i)=>{
-    const d=document.createElement('div');d.className='test-item';d.onclick=()=>startTest(i);
+  var el=document.getElementById('testList');el.innerHTML='';
+  tests.forEach(function(t,i){
+    var d=document.createElement('div');d.className='test-item';d.onclick=function(){startTest(i)};
     d.innerHTML='<div class="ti-ico">'+t.ico+'</div><div class="ti-info"><h4>'+t.name+'</h4><p>'+t.info+'</p></div><span class="ti-arrow">→</span>';
     el.appendChild(d);
   });
 }
+
 function startTest(idx){
   curTest=idx;curQ=0;answers=new Array(tests[idx].questions.length).fill(-1);
   document.getElementById('testsListPad').style.display='none';
@@ -582,175 +584,113 @@ function startTest(idx){
   document.getElementById('testPass').classList.add('active');
   renderQ();
 }
+
 function renderQ(){
-  const t=tests[curTest],q=t.questions[curQ],total=t.questions.length;
+  var t=tests[curTest],q=t.questions[curQ],total=t.questions.length;
   document.getElementById('tpFill').style.width=Math.round((curQ/total)*100)+'%';
   document.getElementById('tpStep').textContent='Вопрос '+(curQ+1)+' из '+total;
   document.getElementById('tpQNum').textContent='Вопрос '+(curQ+1);
   document.getElementById('tpQuestion').textContent=q.q;
-  const opts=document.getElementById('tpOptions');opts.innerHTML='';
-  q.opts.forEach((o,i)=>{
-    const btn=document.createElement('button');
-    btn.className='tp-opt'+(answers[curQ]===i?' selected':'');
-    btn.textContent=o;
-    btn.onclick=()=>{answers[curQ]=i;document.querySelectorAll('.tp-opt').forEach((x,j)=>x.classList.toggle('selected',j===i));document.getElementById('tpNext').disabled=false};
+  var opts=document.getElementById('tpOptions');opts.innerHTML='';
+  q.opts.forEach(function(o,i){
+    var btn=document.createElement('button');btn.className='tp-opt'+(answers[curQ]===i?' selected':'');btn.textContent=o;
+    btn.onclick=(function(idx){return function(){
+      answers[curQ]=idx;document.querySelectorAll('.tp-opt').forEach(function(x,j){x.classList.toggle('selected',j===idx)});document.getElementById('tpNext').disabled=false;
+    }})(i);
     opts.appendChild(btn);
   });
   document.getElementById('tpBack').style.visibility=curQ===0?'hidden':'visible';
   document.getElementById('tpNext').textContent=curQ===total-1?'Завершить ✓':'Далее →';
 }
+
 function testNext(){if(curQ<tests[curTest].questions.length-1){curQ++;renderQ()}else finishTest()}
 function testPrev(){if(curQ>0){curQ--;renderQ()}}
-async function finishTest(){
-  const t=tests[curTest];let score=0;
-  answers.forEach((a,i)=>{if(a===t.questions[i].correct)score++});
-  const level=score>=4?'low':score>=2?'mid':'high';
-  const r=t.results[level];
-  document.getElementById('trIco').textContent=r.ico;
-  document.getElementById('trTitle').textContent=r.title;
-  document.getElementById('trScore').textContent=score+' / '+t.questions.length;
-  document.getElementById('trDesc').textContent=r.desc;
-  try{await fetch(API_URL+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...CURRENT_USER,test_name:t.name,score:score,interpretation:r.title})})}catch(e){console.error(e)}
-  document.getElementById('testPass').classList.remove('active');
-  document.getElementById('testResult').classList.add('active');
+
+function finishTest(){
+  var t=tests[curTest];var score=0;
+  answers.forEach(function(a,i){if(a===t.questions[i].correct)score++});
+  var level=score>=4?'low':score>=2?'mid':'high';var r=t.results[level];
+  document.getElementById('trIco').textContent=r.ico;document.getElementById('trTitle').textContent=r.title;
+  document.getElementById('trScore').textContent=score+' / '+t.questions.length;document.getElementById('trDesc').textContent=r.desc;
+  fetch(API_URL+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{test_name:t.name,score:score,interpretation:r.title}))}).catch(function(e){console.error(e)});
+  document.getElementById('testPass').classList.remove('active');document.getElementById('testResult').classList.add('active');
 }
+
 function backToChat(){
-  document.getElementById('testPass').classList.remove('active');
-  document.getElementById('testResult').classList.remove('active');
-  document.getElementById('testsListPad').style.display='';
-  goTab('consult');
+  document.getElementById('testPass').classList.remove('active');document.getElementById('testResult').classList.remove('active');
+  document.getElementById('testsListPad').style.display='';goTab('consult');
 }
 
-function motLevel(v) {
-  if (v >= 80) return 'Высокая';
-  if (v >= 60) return 'Хорошая';
-  if (v >= 40) return 'Средняя';
-  if (v >= 20) return 'Низкая';
-  return 'Критическая';
-}
-
-async function loadDiaryData() {
-  try {
-    const res = await fetch(API_URL + '/state?tilda_user_id=' + CURRENT_USER.tilda_user_id);
-    const state = await res.json();
-    if (!state || state.message) {
-      document.getElementById('svNum').textContent = '—';
-      document.getElementById('svTitle').textContent = 'Нет данных';
-      document.getElementById('svDesc').textContent = 'Поговорите с Елизаветой, чтобы появились метрики.';
-      return;
-    }
-    const mood = state.mood;
-    const energy = state.energy;
-    const stress = state.stress;
-    const confidence = state.confidence;
-    const motivation = state.motivation;
-    const overallRaw = calcOverall(state);
-    const overall = overallRaw == null ? 0 : Math.round(overallRaw);
-
-    document.getElementById('ringFg').style.strokeDashoffset = 314.16 - (314.16 * overall / 100);
-    document.getElementById('svNum').textContent = overall;
-    document.getElementById('svTitle').textContent = overall >= 70 ? 'Хорошее состояние' : 'Требует внимания';
-    document.getElementById('svDesc').textContent = state.note || 'Данные обновлены';
-
-    setMetric('mood', mood);
-    setMetric('energy', energy);
-    setMetric('stress', stress);
-    setMetric('conf', confidence);
-
-    setMetric('mot', motivation);
-    document.getElementById('motBadge').textContent = motivation == null ? '—' : motLevel(motivation);
-
-    loadTrendAverage();
-  } catch (e) {
-    console.error(e);
-    document.getElementById('svNum').textContent = '—';
-    document.getElementById('svTitle').textContent = 'Ошибка загрузки';
-    document.getElementById('svDesc').textContent = 'Не удалось получить данные.';
-  }
-}
-
-function setMetric(prefix, value) {
-  const valEl = document.getElementById(prefix + 'Val');
-  const barEl = document.getElementById(prefix + 'Bar');
-  if (value == null) { valEl.textContent = '—'; barEl.style.width = '0%'; }
-  else { valEl.textContent = value + '%'; barEl.style.width = value + '%'; }
-}
-
-async function loadTrendAverage() {
-  const container = document.getElementById('trendContent');
-  try {
-    const res = await fetch(API_URL + '/state/history?tilda_user_id=' + CURRENT_USER.tilda_user_id);
-    const data = await res.json();
-    if (!data.history || data.history.length === 0) {
-      container.innerHTML = '<div class="ta-empty">Недостаточно данных для отображения динамики. Поговорите с Елизаветой, чтобы появились записи.</div>';
-      return;
-    }
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recent = data.history.filter(h => new Date((h.created_at||'').replace(' ','T')+'Z') >= weekAgo);
-    if (recent.length === 0) {
-      container.innerHTML = '<div class="ta-empty">За последние 7 дней нет записей. Продолжайте общение с Елизаветой.</div>';
-      return;
-    }
-    let total = 0, counted = 0;
-    recent.forEach(h => { const o = calcOverall(h); if (o != null) { total += o; counted++; } });
-    if (!counted) {
-      container.innerHTML = '<div class="ta-empty">За последние 7 дней нет записей. Продолжайте общение с Елизаветой.</div>';
-      return;
-    }
-    const avg = Math.round(total / counted);
-
-    let statusText = '';
-    if (avg >= 80) statusText = 'Отличное состояние, вы в прекрасной форме';
-    else if (avg >= 65) statusText = 'Хорошее состояние, продолжайте в том же духе';
-    else if (avg >= 50) statusText = 'Среднее состояние, есть пространство для роста';
-    else if (avg >= 35) statusText = 'Требует внимания, рекомендуем больше практиковать';
-    else statusText = 'Низкое состояние, обратитесь к Елизавете за поддержкой';
-
-    const circ = 2 * Math.PI * 38;
-    container.innerHTML =
-      '<div class="trend-avg-wrap">' +
-        '<div class="ta-ring">' +
-          '<svg viewBox="0 0 90 90"><circle class="ring-bg" cx="45" cy="45" r="38"/><circle class="ring-fg" id="trendRingFg" cx="45" cy="45" r="38" stroke-dasharray="'+circ.toFixed(2)+'" stroke-dashoffset="'+circ.toFixed(2)+'"/></svg>' +
-          '<div class="ta-val">'+avg+'</div>' +
-        '</div>' +
-        '<div class="ta-text">' +
-          '<div class="ta-title">Среднее общее состояние</div>' +
-          '<div class="ta-sub">за последние 7 дней</div>' +
-          '<div class="ta-sub" style="margin-top:8px;font-weight:600;color:var(--text)">'+statusText+'</div>' +
-        '</div>' +
-      '</div>';
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const ring = document.getElementById('trendRingFg');
-        if (ring) ring.style.strokeDashoffset = circ - (circ * avg / 100);
-      });
+/* === Результаты из БД === */
+function loadTestResults(){
+  var listEl=document.getElementById('resultsList');var emptyEl=document.getElementById('resultsEmpty');var summaryEl=document.getElementById('resultsSummary');
+  listEl.innerHTML='';emptyEl.style.display='block';summaryEl.style.display='none';
+  fetch(API_URL+'/test/history?tilda_user_id='+CURRENT_USER.tilda_user_id).then(function(res){
+    if(!res.ok)throw new Error('Статус '+res.status);return res.json();
+  }).then(function(data){
+    var items=data.history||data.results||data;
+    if(!Array.isArray(items)||items.length===0)return;
+    emptyEl.style.display='none';summaryEl.style.display='grid';
+    var totalScore=0;var count=items.length;items.forEach(function(r){totalScore+=(r.score||0)});
+    document.getElementById('rsTotal').textContent=count;document.getElementById('rsAvg').textContent=(totalScore/count).toFixed(1);
+    var testIcons={'Шкала тревожности':'😰','Опросник выгорания':'😴'};
+    items.slice().reverse().forEach(function(r){
+      var name=r.test_name||'Тест';var ico=testIcons[name]||'📋';var score=r.score||0;var maxQ=5;var interp=r.interpretation||'';
+      var dateStr='—';if(r.created_at){try{dateStr=new Date((r.created_at||'').replace(' ','T')+'Z').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})}catch(e){dateStr=r.created_at}}
+      var pct=maxQ>0?Math.round(score/maxQ*100):0;var levelCls='level-default';
+      if(interp.toLowerCase().includes('низк'))levelCls='level-low';else if(interp.toLowerCase().includes('умерен'))levelCls='level-mid';else if(interp.toLowerCase().includes('высок'))levelCls='level-high';
+      var card=document.createElement('div');card.className='result-card';
+      card.innerHTML='<div class="rc-top"><div class="rc-ico">'+ico+'</div><div class="rc-info"><h4>'+escHtml(name)+'</h4><div class="rc-date">'+dateStr+'</div></div></div><div class="rc-score-row"><div class="rc-score-num">'+score+'</div><div class="rc-score-total">из '+maxQ+'</div><div class="rc-bar-wrap"><div class="rc-bar-fill" style="width:0%" data-pct="'+pct+'"></div></div></div>'+(interp?'<div class="rc-interpretation '+levelCls+'">'+escHtml(interp)+'</div>':'');
+      listEl.appendChild(card);
     });
-  } catch(e) {
-    console.error(e);
-    container.innerHTML = '<div class="ta-empty">Не удалось загрузить динамику.</div>';
-  }
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.querySelectorAll('.rc-bar-fill[data-pct]').forEach(function(bar){bar.style.width=bar.getAttribute('data-pct')+'%'})})});
+  }).catch(function(e){console.error(e);emptyEl.querySelector('h4').textContent='Ошибка загрузки';emptyEl.querySelector('p').textContent='Не удалось получить данные.'});
 }
 
-async function loadRecommendations() {
-  try {
-    const res = await fetch(API_URL + '/recommendations?tilda_user_id=' + CURRENT_USER.tilda_user_id);
-    const data = await res.json();
-    const list = document.getElementById('recomList');
-    const empty = document.getElementById('recomEmpty');
-    list.innerHTML = '';
-    if (data.recommendations && data.recommendations.length > 0) {
-      empty.style.display = 'none';
-      data.recommendations.forEach(r => {
-        const dateLabel = new Date((r.created_at||'').replace(' ','T')+'Z').toLocaleDateString('ru-RU');
-        const div = document.createElement('div');
-        div.className = 'recom-card';
-        div.innerHTML = '<h4>💡 '+escHtml(r.category)+'</h4><p>'+escHtml(r.text)+'</p><div class="recom-date">Создано: '+dateLabel+'</div>';
-        list.appendChild(div);
+/* === Дневник === */
+function motLevel(v){if(v>=80)return'Высокая';if(v>=60)return'Хорошая';if(v>=40)return'Средняя';if(v>=20)return'Низкая';return'Критическая'}
+function setMetric(prefix,value){var valEl=document.getElementById(prefix+'Val');var barEl=document.getElementById(prefix+'Bar');if(value==null){valEl.textContent='—';barEl.style.width='0%'}else{valEl.textContent=value+'%';barEl.style.width=value+'%'}}
+
+function loadDiaryData(){
+  fetch(API_URL+'/state?tilda_user_id='+CURRENT_USER.tilda_user_id).then(function(res){return res.json()}).then(function(state){
+    if(!state||state.message){document.getElementById('svNum').textContent='—';document.getElementById('svTitle').textContent='Нет данных';document.getElementById('svDesc').textContent='Поговорите с Елизаветой, чтобы появились метрики.';return}
+    var overallRaw=calcOverall(state);var overall=overallRaw==null?0:Math.round(overallRaw);
+    document.getElementById('ringFg').style.strokeDashoffset=314.16-(314.16*overall/100);document.getElementById('svNum').textContent=overall;
+    document.getElementById('svTitle').textContent=overall>=70?'Хорошее состояние':'Требует внимания';document.getElementById('svDesc').textContent=state.note||'Данные обновлены';
+    setMetric('mood',state.mood);setMetric('energy',state.energy);setMetric('stress',state.stress);setMetric('conf',state.confidence);setMetric('mot',state.motivation);
+    document.getElementById('motBadge').textContent=state.motivation==null?'—':motLevel(state.motivation);loadTrendAverage();
+  }).catch(function(e){console.error(e);document.getElementById('svNum').textContent='—';document.getElementById('svTitle').textContent='Ошибка загрузки';document.getElementById('svDesc').textContent='Не удалось получить данные.'});
+}
+
+function loadTrendAverage(){
+  var container=document.getElementById('trendContent');
+  fetch(API_URL+'/state/history?tilda_user_id='+CURRENT_USER.tilda_user_id).then(function(res){return res.json()}).then(function(data){
+    if(!data.history||data.history.length===0){container.innerHTML='<div class="ta-empty">Недостаточно данных для отображения динамики.</div>';return}
+    var now=new Date();var weekAgo=new Date(now.getTime()-7*24*60*60*1000);
+    var recent=data.history.filter(function(h){return new Date((h.created_at||'').replace(' ','T')+'Z')>=weekAgo});
+    if(recent.length===0){container.innerHTML='<div class="ta-empty">За последние 7 дней нет записей.</div>';return}
+    var total=0,counted=0;recent.forEach(function(h){var o=calcOverall(h);if(o!=null){total+=o;counted++}});
+    if(!counted){container.innerHTML='<div class="ta-empty">За последние 7 дней нет записей.</div>';return}
+    var avg=Math.round(total/counted);var statusText='';
+    if(avg>=80)statusText='Отличное состояние, вы в прекрасной форме';else if(avg>=65)statusText='Хорошее состояние, продолжайте в том же духе';else if(avg>=50)statusText='Среднее состояние, есть пространство для роста';else if(avg>=35)statusText='Требует внимания, рекомендуем больше практиковать';else statusText='Низкое состояние, обратитесь к Елизавете за поддержкой';
+    var circ=2*Math.PI*38;
+    container.innerHTML='<div class="trend-avg-wrap"><div class="ta-ring"><svg viewBox="0 0 90 90"><circle class="ring-bg" cx="45" cy="45" r="38"/><circle class="ring-fg" id="trendRingFg" cx="45" cy="45" r="38" stroke-dasharray="'+circ.toFixed(2)+'" stroke-dashoffset="'+circ.toFixed(2)+'"/></svg><div class="ta-val">'+avg+'</div></div><div class="ta-text"><div class="ta-title">Среднее общее состояние</div><div class="ta-sub">за последние 7 дней</div><div class="ta-sub" style="margin-top:8px;font-weight:600;color:var(--text)">'+statusText+'</div></div></div>';
+    requestAnimationFrame(function(){requestAnimationFrame(function(){var ring=document.getElementById('trendRingFg');if(ring)ring.style.strokeDashoffset=circ-(circ*avg/100)})});
+  }).catch(function(e){console.error(e);container.innerHTML='<div class="ta-empty">Не удалось загрузить динамику.</div>'});
+}
+
+/* === Рекомендации === */
+function loadRecommendations(){
+  fetch(API_URL+'/recommendations?tilda_user_id='+CURRENT_USER.tilda_user_id).then(function(res){return res.json()}).then(function(data){
+    var list=document.getElementById('recomList');var empty=document.getElementById('recomEmpty');list.innerHTML='';
+    if(data.recommendations&&data.recommendations.length>0){
+      empty.style.display='none';
+      data.recommendations.forEach(function(r){
+        var dateLabel='—';if(r.created_at){try{dateLabel=new Date((r.created_at||'').replace(' ','T')+'Z').toLocaleDateString('ru-RU')}catch(e){dateLabel=r.created_at}}
+        var div=document.createElement('div');div.className='recom-card';div.innerHTML='<h4>💡 '+escHtml(r.category)+'</h4><p>'+escHtml(r.text)+'</p><div class="recom-date">Создано: '+dateLabel+'</div>';list.appendChild(div);
       });
-    } else { empty.style.display = 'block'; }
-  } catch(e) { console.error(e); }
+    }else{empty.style.display='block'}
+  }).catch(function(e){console.error(e)});
 }
 </script>
 </body>
