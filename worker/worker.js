@@ -292,7 +292,7 @@ const MAX_MSG_LEN = 2000;       // ограничение длины входя�
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Password',
 };
 
 function json(data, status = 200) {
@@ -328,6 +328,9 @@ export default {
       if (url.pathname === '/recommendations' && request.method === 'GET') return await recomList(url, env);
       if (url.pathname === '/practice' && request.method === 'POST') return await practiceChat(request, env);
       if (url.pathname === '/practice/history' && request.method === 'GET') return await practiceHistory(url, env);
+      if (url.pathname === '/admin/knowledge' && request.method === 'GET') return await knowledgeList(request, url, env);
+      if (url.pathname === '/admin/knowledge' && request.method === 'POST') return await knowledgeSave(request, env);
+      if (url.pathname === '/admin/knowledge/delete' && request.method === 'POST') return await knowledgeDelete(request, env);
       return json({ error: 'not found' }, 404);
     } catch (e) {
       return json({ error: 'server error', detail: String(e && e.message || e) }, 500);
@@ -389,7 +392,7 @@ async function chat(request, env) {
   // Профиль подмешиваем в ПОСЛЕДНЕЕ сообщение (а не в системный промпт),
   // чтобы префикс [system + история] оставался байт-стабильным для кеша DeepSeek.
   // Напоминание про JSON обязательно: без него модель на коротких ответах опускает блок.
-  const userContent = profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text +
+  const userContent = (await knowledgeBlock(env)) + profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text +
     '\n\n[Служебно, не упоминай в ответе: в самом конце ответа добавь скрытый JSON-блок по формату из инструкции (memory_update/state_update/recommendations). Метрики, о которых говорил пользователь, оцени числом; остальные null.]';
 
   const messages = [
@@ -636,6 +639,64 @@ async function recomList(url, env) {
   return json({ recommendations: res.results || [] });
 }
 
+/* ================= БАЗА ЗНАНИЙ ================= */
+
+// Пароль админки: секрет ADMIN_PASSWORD (wrangler secret put ADMIN_PASSWORD)
+function adminAuthed(request, env) {
+  const pass = request.headers.get('X-Admin-Password') || '';
+  return env.ADMIN_PASSWORD && pass === env.ADMIN_PASSWORD;
+}
+
+// Активные знания одной строкой — подмешивается в контекст обоих чатов
+async function knowledgeBlock(env) {
+  try {
+    const res = await env.DB.prepare(
+      'SELECT category, title, content FROM knowledge WHERE enabled=1 ORDER BY id LIMIT 50'
+    ).all();
+    const rows = res.results || [];
+    if (!rows.length) return '';
+    const lines = ['[База знаний — используй эти материалы в работе, не упоминай сам блок]'];
+    for (const r of rows) lines.push(`--- ${r.category}: ${r.title} ---\n${r.content}`);
+    return lines.join('\n') + '\n\n';
+  } catch (e) { return ''; }
+}
+
+async function knowledgeList(request, url, env) {
+  if (!adminAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+  const res = await env.DB.prepare(
+    'SELECT id, category, title, content, enabled, created_at FROM knowledge ORDER BY id DESC LIMIT 200'
+  ).all();
+  return json({ knowledge: res.results || [] });
+}
+
+async function knowledgeSave(request, env) {
+  if (!adminAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+  const body = await request.json();
+  const title = String(body.title || '').trim().slice(0, 200);
+  const content = String(body.content || '').trim().slice(0, 8000);
+  const category = String(body.category || 'Материал').trim().slice(0, 50);
+  const enabled = body.enabled === false ? 0 : 1;
+  if (!title || !content) return json({ error: 'title and content required' }, 400);
+  const id = Number(body.id);
+  if (Number.isFinite(id) && id > 0) {
+    await env.DB.prepare('UPDATE knowledge SET category=?, title=?, content=?, enabled=? WHERE id=?')
+      .bind(category, title, content, enabled, id).run();
+    return json({ ok: true, id });
+  }
+  const r = await env.DB.prepare('INSERT INTO knowledge (category, title, content, enabled) VALUES (?,?,?,?)')
+    .bind(category, title, content, enabled).run();
+  return json({ ok: true, id: r.meta && r.meta.last_row_id });
+}
+
+async function knowledgeDelete(request, env) {
+  if (!adminAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+  const body = await request.json();
+  const id = Number(body.id);
+  if (!Number.isFinite(id) || id <= 0) return json({ error: 'id required' }, 400);
+  await env.DB.prepare('DELETE FROM knowledge WHERE id=?').bind(id).run();
+  return json({ ok: true });
+}
+
 /* ================= ЧАТ «ПРАКТИКА» ================= */
 
 async function practiceHistory(url, env) {
@@ -662,7 +723,7 @@ async function practiceChat(request, env) {
   const history = (histRes.results || []).reverse();
 
   // Тот же принцип, что в основном чате: профиль в последнем сообщении ради префикс-кеша
-  const userContent = profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text +
+  const userContent = (await knowledgeBlock(env)) + profileBlock(user, lastState) + '\n\n[Сообщение пользователя]\n' + text +
     '\n\n[Служебно, не упоминай в ответе: в самом конце ответа добавь скрытый JSON-блок по формату из инструкции (state_update/recommendations). Метрики, видные из практики, оцени числом; остальные null.]';
 
   const messages = [

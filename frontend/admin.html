@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>База знаний — Елизавета</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --beige:#B79B86;--beige-dark:#A6876F;--beige-soft:#F5EFE9;
+  --bg:#FAF8F5;--card:#FFFFFF;--border:#EDE7E0;
+  --text:#2E2A26;--text2:#4A4A4A;--text3:#8A8A8A;
+  --green:#3E8560;--red:#C45040;
+  --r:18px;--r-sm:12px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text2);line-height:1.6;padding:24px 16px 60px}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.02em;margin-bottom:4px}
+.sub{font-size:13px;color:var(--text3);margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;box-shadow:0 2px 8px rgba(74,58,46,.04)}
+label{display:block;font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px}
+label:first-child{margin-top:0}
+input,textarea,select{width:100%;padding:12px 14px;border-radius:var(--r-sm);border:1.5px solid var(--border);font-family:inherit;font-size:14px;color:var(--text);outline:none;background:#fff;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--beige)}
+textarea{min-height:130px;resize:vertical;line-height:1.55}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 22px;border:none;border-radius:9999px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .25s}
+.btn-main{background:var(--beige);color:#fff;box-shadow:0 6px 16px rgba(183,155,134,.3)}
+.btn-main:hover{background:var(--beige-dark);transform:translateY(-1px)}
+.btn-ghost{background:var(--card);color:var(--text2);border:1.5px solid var(--border)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-danger{background:rgba(196,80,64,.08);color:var(--red)}
+.btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.k-item{display:flex;gap:14px;align-items:flex-start}
+.k-item.off{opacity:.5}
+.k-ico{width:42px;height:42px;min-width:42px;border-radius:12px;background:var(--beige-soft);display:flex;align-items:center;justify-content:center;font-size:20px}
+.k-body{flex:1;min-width:0}
+.k-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--beige-dark);margin-bottom:2px}
+.k-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.k-preview{font-size:13px;color:var(--text3);white-space:pre-wrap;word-break:break-word;max-height:66px;overflow:hidden;position:relative}
+.k-preview.open{max-height:none}
+.k-more{font-size:12px;color:var(--beige-dark);cursor:pointer;font-weight:600;margin-top:2px;display:inline-block}
+.k-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.msg{padding:12px 16px;border-radius:var(--r-sm);font-size:13px;font-weight:600;margin-bottom:14px;display:none}
+.msg.ok{display:block;background:rgba(62,133,96,.1);color:var(--green)}
+.msg.err{display:block;background:rgba(196,80,64,.1);color:var(--red)}
+#loginCard{max-width:380px;margin:12vh auto 0;text-align:center}
+#loginCard h1{margin-bottom:16px}
+.hint{font-size:12px;color:var(--text3);margin-top:14px;line-height:1.6}
+.empty{color:var(--text3);text-align:center;padding:30px 0;font-size:14px}
+.topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
+</style>
+</head>
+<body>
+
+<!-- Вход -->
+<div class="wrap" id="loginView">
+  <div class="card" id="loginCard">
+    <h1>🔐 База знаний</h1>
+    <p class="sub">Панель управления знаниями Елизаветы</p>
+    <input type="password" id="passInput" placeholder="Пароль администратора" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-main" onclick="doLogin()">Войти</button>
+    </div>
+    <div class="msg err" id="loginMsg"></div>
+    <p class="hint">Пароль выдаётся разработчиком. Доступ только для владельца курса.</p>
+  </div>
+</div>
+
+<!-- Админка -->
+<div class="wrap" id="adminView" style="display:none">
+  <div class="topline">
+    <div>
+      <h1>📚 База знаний Елизаветы</h1>
+      <p class="sub" style="margin-bottom:0">Всё, что добавите здесь, Елизавета сразу знает и использует в чате и практике.</p>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">Выйти</button>
+  </div>
+
+  <div class="msg" id="adminMsg"></div>
+
+  <div class="card">
+    <label>Категория</label>
+    <select id="fCat">
+      <option>Тест</option>
+      <option>Практика</option>
+      <option selected>Материал</option>
+      <option>Факт о курсе</option>
+    </select>
+    <label>Заголовок</label>
+    <input id="fTitle" placeholder="Например: Тест на самооценку">
+    <label>Содержание</label>
+    <textarea id="fContent" placeholder="Для теста: вопросы, варианты ответов по шкале, как считать и трактовать результат.&#10;Для практики: название, цель, время, инструкция, ожидаемый результат.&#10;Для материала/факта: просто текст, который Елизавета должна знать."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-main" id="saveBtn" onclick="saveItem()">Добавить</button>
+      <button class="btn btn-ghost" id="cancelBtn" onclick="resetForm()" style="display:none">Отмена</button>
+    </div>
+  </div>
+
+  <div id="kList"></div>
+</div>
+
+<script>
+const API_URL = 'https://baza-rosta-ai.baza-rosta.workers.dev';
+let PASS = sessionStorage.getItem('kb_pass') || '';
+let editId = null;
+const CAT_ICO = {'Тест':'🧪','Практика':'📝','Материал':'📖','Факт о курсе':'🎓'};
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function hdrs(){return {'Content-Type':'application/json','X-Admin-Password':PASS}}
+function showMsg(text, isErr){const m=document.getElementById('adminMsg');m.textContent=text;m.className='msg '+(isErr?'err':'ok');setTimeout(()=>{m.className='msg'},3500)}
+
+async function doLogin(){
+  PASS = document.getElementById('passInput').value.trim();
+  if(!PASS) return;
+  const r = await fetch(API_URL+'/admin/knowledge',{headers:hdrs()});
+  if(r.status===401){const m=document.getElementById('loginMsg');m.textContent='Неверный пароль';m.className='msg err';return}
+  sessionStorage.setItem('kb_pass',PASS);
+  document.getElementById('loginView').style.display='none';
+  document.getElementById('adminView').style.display='block';
+  loadList();
+}
+function doLogout(){sessionStorage.removeItem('kb_pass');location.reload()}
+
+async function loadList(){
+  const r = await fetch(API_URL+'/admin/knowledge',{headers:hdrs()});
+  if(!r.ok){showMsg('Ошибка загрузки',true);return}
+  const d = await r.json();
+  const el = document.getElementById('kList');
+  el.innerHTML='';
+  if(!d.knowledge||!d.knowledge.length){el.innerHTML='<div class="card empty">Пока пусто. Добавьте первое знание выше — например, тест.</div>';return}
+  d.knowledge.forEach(k=>{
+    const card=document.createElement('div');
+    card.className='card k-item'+(k.enabled?'':' off');
+    card.innerHTML =
+      '<div class="k-ico">'+(CAT_ICO[k.category]||'📄')+'</div>'+
+      '<div class="k-body">'+
+        '<div class="k-cat">'+esc(k.category)+(k.enabled?'':' · выключено')+'</div>'+
+        '<div class="k-title">'+esc(k.title)+'</div>'+
+        '<div class="k-preview" id="prev-'+k.id+'">'+esc(k.content)+'</div>'+
+        (k.content.length>180?'<span class="k-more" onclick="togglePrev('+k.id+',this)">развернуть ▾</span>':'')+
+      '</div>'+
+      '<div class="k-actions">'+
+        '<button class="btn btn-ghost btn-sm" onclick=\'editItem('+JSON.stringify(k).replace(/'/g,"&#39;")+')\'>Изменить</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="toggleItem('+k.id+','+(k.enabled?0:1)+')">'+(k.enabled?'Выключить':'Включить')+'</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="delItem('+k.id+')">Удалить</button>'+
+      '</div>';
+    el.appendChild(card);
+  });
+  window._kn = d.knowledge;
+}
+function togglePrev(id,btn){const p=document.getElementById('prev-'+id);p.classList.toggle('open');btn.textContent=p.classList.contains('open')?'свернуть ▴':'развернуть ▾'}
+
+function editItem(k){
+  editId=k.id;
+  document.getElementById('fCat').value=k.category;
+  document.getElementById('fTitle').value=k.title;
+  document.getElementById('fContent').value=k.content;
+  document.getElementById('saveBtn').textContent='Сохранить изменения';
+  document.getElementById('cancelBtn').style.display='inline-flex';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function resetForm(){
+  editId=null;
+  document.getElementById('fTitle').value='';
+  document.getElementById('fContent').value='';
+  document.getElementById('saveBtn').textContent='Добавить';
+  document.getElementById('cancelBtn').style.display='none';
+}
+
+async function saveItem(){
+  const title=document.getElementById('fTitle').value.trim();
+  const content=document.getElementById('fContent').value.trim();
+  const category=document.getElementById('fCat').value;
+  if(!title||!content){showMsg('Заполните заголовок и содержание',true);return}
+  const body={title,content,category};
+  if(editId)body.id=editId;
+  const r=await fetch(API_URL+'/admin/knowledge',{method:'POST',headers:hdrs(),body:JSON.stringify(body)});
+  if(!r.ok){showMsg('Ошибка сохранения',true);return}
+  showMsg(editId?'Изменения сохранены — Елизавета уже в курсе':'Добавлено — Елизавета уже знает это');
+  resetForm();loadList();
+}
+
+async function toggleItem(id,enable){
+  const k=(window._kn||[]).find(x=>x.id===id);if(!k)return;
+  const r=await fetch(API_URL+'/admin/knowledge',{method:'POST',headers:hdrs(),body:JSON.stringify({id:id,title:k.title,content:k.content,category:k.category,enabled:!!enable})});
+  if(r.ok){showMsg(enable?'Включено':'Выключено — Елизавета больше это не использует');loadList()}
+}
+
+async function delItem(id){
+  if(!confirm('Удалить безвозвратно? Можно просто выключить.'))return;
+  const r=await fetch(API_URL+'/admin/knowledge/delete',{method:'POST',headers:hdrs(),body:JSON.stringify({id})});
+  if(r.ok){showMsg('Удалено');loadList()}
+}
+
+if(PASS){(async()=>{
+  const r=await fetch(API_URL+'/admin/knowledge',{headers:hdrs()});
+  if(r.ok){document.getElementById('loginView').style.display='none';document.getElementById('adminView').style.display='block';loadList()}
+  else{sessionStorage.removeItem('kb_pass');PASS=''}
+})();}
+</script>
+</body>
+</html>

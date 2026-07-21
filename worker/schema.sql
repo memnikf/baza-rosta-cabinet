@@ -67,3 +67,13 @@ CREATE TABLE IF NOT EXISTS practice_messages (
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_practice_user ON practice_messages(user_id, id);
+
+-- База знаний Елизаветы: пополняется через админку, подмешивается в контекст ИИ
+CREATE TABLE IF NOT EXISTS knowledge (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  category   TEXT DEFAULT 'Материал',        -- Тест / Практика / Материал / Факт о курсе
+  title      TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  enabled    INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
