@@ -378,8 +378,15 @@ async function chat(request, env) {
     : '';
 
   // Вырезаем скрытый JSON-блок из ответа и сохраняем его в D1
-  const { cleaned, hidden } = extractHiddenJson(raw);
+  let { cleaned, hidden } = extractHiddenJson(raw);
   const reply = cleaned || 'Я вас слушаю. Расскажите подробнее.';
+
+  // Модель нестабильно добавляет скрытый JSON — если его нет (или state_update пустой),
+  // извлекаем состояние отдельным запросом
+  if (!hidden || stateUpdateEmpty(hidden.state_update)) {
+    const fb = await extractStateFallback(env, text);
+    if (fb && !stateUpdateEmpty(fb.state_update)) hidden = Object.assign({}, hidden, fb);
+  }
 
   // История: храним «чистые» реплики без служебного JSON и без блока профиля
   await env.DB.prepare('INSERT INTO messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'user', text).run();
@@ -465,6 +472,58 @@ function extractHiddenJson(text) {
   const hidden = {};
   for (const f of found) Object.assign(hidden, f);
   return { cleaned, hidden };
+}
+
+/**
+ * Fallback-извлечение состояния: модель нестабильно добавляет скрытый JSON
+ * (особенно на коротких сообщениях) — если extractHiddenJson ничего не нашёл,
+ * делаем второй короткий запрос с response_format json_object и извлекаем
+ * state_update напрямую из сообщения пользователя. Ошибки глотаем: дневник
+ * заполнится со следующего сообщения, а ответ пользователю важнее.
+ */
+// state_update без единой числовой метрики (все null/нули) — эхо шаблона, не замер
+function stateUpdateEmpty(su) {
+  if (!su || typeof su !== 'object') return true;
+  return !['mood', 'energy', 'stress', 'confidence', 'motivation', 'happiness']
+    .some(f => { const v = num(su[f]); return v !== null && v !== 0; });
+}
+
+async function extractStateFallback(env, userText) {
+  try {
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + env.DEEPSEEK_API_KEY,
+      },
+      body: JSON.stringify({
+        model: env.DEEPSEEK_MODEL || MODEL_DEFAULT,
+        messages: [
+          {
+            role: 'system',
+            content: 'Ты извлекаешь эмоциональное состояние из сообщения пользователя психологу. ' +
+              'Верни ТОЛЬКО JSON вида {"state_update":{"mood":null,"energy":null,"stress":null,"confidence":null,"motivation":null,"happiness":null}}. ' +
+              'Каждую метрику оцени числом 0-100, если она прямо названа или ясна из контекста (настроение → mood, бодрость/усталость → energy, тревога/напряжение → stress, уверенность → confidence, желание действовать → motivation, удовлетворённость → happiness). ' +
+              'Метрики, о которых информации нет, оставь null. Не ставь нули «на всякий случай». Если состояния в сообщении не видно вовсе — все null.',
+          },
+          { role: 'user', content: userText },
+        ],
+        temperature: 0,
+        max_tokens: 200,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const raw = data.choices && data.choices[0] && data.choices[0].message
+      ? String(data.choices[0].message.content || '') : '';
+    const parsed = safeParse(raw);
+    if (!parsed || typeof parsed !== 'object' || !parsed.state_update) return null;
+    return { state_update: parsed.state_update };
+  } catch (e) {
+    console.log('state fallback error:', String(e && e.message || e));
+    return null;
+  }
 }
 
 async function saveMemory(env, uid, user, upd) {
@@ -742,8 +801,15 @@ async function practiceChat(request, env) {
     ? String(data.choices[0].message.content || '')
     : '';
 
-  const { cleaned, hidden } = extractHiddenJson(raw);
+  let { cleaned, hidden } = extractHiddenJson(raw);
   const reply = cleaned || 'Расскажите подробнее о выполненной практике.';
+
+  // Как и в основном чате: без скрытого JSON (или с пустым state_update)
+  // извлекаем состояние отдельным запросом
+  if (!hidden || stateUpdateEmpty(hidden.state_update)) {
+    const fb = await extractStateFallback(env, text);
+    if (fb && !stateUpdateEmpty(fb.state_update)) hidden = Object.assign({}, hidden, fb);
+  }
 
   await env.DB.prepare('INSERT INTO practice_messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'user', text).run();
   await env.DB.prepare('INSERT INTO practice_messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'assistant', reply).run();
