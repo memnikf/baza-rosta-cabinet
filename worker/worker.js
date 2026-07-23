@@ -283,87 +283,9 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Password',
 };
 
-// Диагностическая страница (/diag): из браузера телефона гоняет набор запросов
-// и выдаёт готовый к копированию результат — чтобы понять, что именно рвёт РФ-DPI.
-const DIAG_HTML = '<!doctype html><html lang="ru"><head><meta charset="utf-8">' +
-'<meta name="viewport" content="width=device-width,initial-scale=1"><title>Диагностика связи</title>' +
-'<style>body{font-family:-apple-system,system-ui,sans-serif;padding:16px;font-size:16px;background:#111;color:#eee;line-height:1.5}' +
-'h1{font-size:18px}.row{padding:8px 0;border-bottom:1px solid #333}.ok{color:#4caf50}.err{color:#ff5252}.run{color:#ffb300}' +
-'#sum{margin-top:16px;padding:12px;background:#1e1e1e;border-radius:8px;white-space:pre-wrap;font-size:14px;user-select:all}</style>' +
-'</head><body><h1>Диагностика связи с сервером</h1><p>Открой без VPN. Каждый запрос ограничен 12 сек. Дождись конца, пришли текст из серой рамки.</p>' +
-'<div id="list"></div><div id="sum">Запускаю тесты…</div><script>' +
-'var API=location.origin;var H={"Content-Type":"application/json"};' +
-'var ECHOB=JSON.stringify({m:"привет"});var CHATB=JSON.stringify({tilda_user_id:"diag_probe",message:"Тест связи, ответь одним словом"});' +
-'var tests=[' +
-'{n:"GET fast",u:"/slowtest?sec=0"},' +
-'{n:"GET 5s",u:"/slowtest?sec=5"},' +
-'{n:"POST fast #1",u:"/echo?sec=0",p:1},' +
-'{n:"POST fast #2",u:"/echo?sec=0",p:1},' +
-'{n:"POST fast #3",u:"/echo?sec=0",p:1},' +
-'{n:"POST buffered 5s",u:"/echo?sec=5",p:1},' +
-'{n:"STREAM 5s #1",u:"/streamtest?sec=5",p:1},' +
-'{n:"STREAM 5s #2",u:"/streamtest?sec=5",p:1},' +
-'{n:"STREAM 5s #3",u:"/streamtest?sec=5",p:1},' +
-'{n:"CHAT #1",u:"/chat",c:1},' +
-'{n:"CHAT #2",u:"/chat",c:1}' +
-'];' +
-'var list=document.getElementById("list"),sum=document.getElementById("sum");' +
-'(async function(){var res=[];for(var i=0;i<tests.length;i++){var t=tests[i];' +
-'var opts=t.c?{method:"POST",headers:H,body:CHATB}:(t.p?{method:"POST",headers:H,body:ECHOB}:{});' +
-'var ac=new AbortController();opts.signal=ac.signal;var to=setTimeout(function(){ac.abort()},12000);' +
-'var row=document.createElement("div");row.className="row";row.textContent="... "+t.n;list.appendChild(row);' +
-'var t0=Date.now();try{var r=await fetch(API+t.u,opts);var txt=await r.text();clearTimeout(to);var ms=Date.now()-t0;' +
-'row.className="row ok";row.textContent="OK "+t.n+" - "+r.status+", "+ms+" ms";res.push(t.n+": OK "+r.status+" "+ms+"ms")}' +
-'catch(e){clearTimeout(to);var ms2=Date.now()-t0;var msg=e&&e.name==="AbortError"?"TIMEOUT>12s":((e&&e.message)||String(e));' +
-'row.className="row err";row.textContent="FAIL "+t.n+" - "+msg+" ("+ms2+" ms)";res.push(t.n+": FAIL "+msg+" "+ms2+"ms")}}' +
-'sum.textContent="СКОПИРУЙ И ПРИШЛИ ЭТО:\\n\\n"+res.join("\\n")})();' +
-'</script></body></html>';
-
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
-  });
-}
-
-// Держим соединение «живым», пока воркер ждёт DeepSeek (3-4 сек).
-// РФ-DPI (напр. Tele2 на мобильном) рвёт «молчащее» долгое соединение —
-// быстрые GET проскакивают, а тихий POST-чат сбрасывается («load failed»).
-// Шлём пробел сразу и раз в ~0.7с, затем сам JSON. Пробелы перед JSON
-// парсер клиента игнорирует (JSON.parse), поэтому фронт менять не нужно.
-function keepaliveJson(ctx, produce) {
-  const ts = new TransformStream();
-  const writer = ts.writable.getWriter();
-  const enc = new TextEncoder();
-  let done = false;
-
-  const pump = (async () => {
-    try {
-      await writer.write(enc.encode(' ')); // первый байт сразу
-      while (!done) {
-        await new Promise(r => setTimeout(r, 700));
-        if (done) break;
-        await writer.write(enc.encode(' '));
-      }
-    } catch (e) { /* клиент отключился — молча выходим */ }
-  })();
-
-  const run = (async () => {
-    let payload;
-    try {
-      payload = await produce();
-    } catch (e) {
-      console.log('keepalive produce error:', String(e && e.message || e));
-      payload = { reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' };
-    }
-    done = true;
-    try { await writer.write(enc.encode(JSON.stringify(payload))); } catch (e) {}
-    try { await writer.close(); } catch (e) {}
-  })();
-
-  if (ctx && ctx.waitUntil) ctx.waitUntil(Promise.all([pump, run]));
-
-  return new Response(ts.readable, {
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
   });
 }
@@ -410,34 +332,14 @@ export default {
       if (url.pathname === '/admin/knowledge' && request.method === 'POST') return await knowledgeSave(request, env);
       if (url.pathname === '/admin/knowledge/delete' && request.method === 'POST') return await knowledgeDelete(request, env);
       if (url.pathname === '/knowledge/tests' && request.method === 'GET') return await knowledgeTests(env);
-      // Диагностика РФ-DPI: ждём sec секунд «молча», затем короткий JSON.
-      // Если /slowtest?sec=5 рвётся на мобильном, а sec=1 — нет, значит DPI режет по длительности.
-      if (url.pathname === '/slowtest' && request.method === 'GET') {
-        const sec = Math.min(15, Math.max(0, Number(url.searchParams.get('sec')) || 0));
-        await new Promise(r => setTimeout(r, sec * 1000));
-        return json({ ok: true, waited: sec });
-      }
-      // Диагностика: POST-эхо. ?sec — задержка, ?big=1 — крупный ответ. Тело читаем целиком.
-      if (url.pathname === '/echo' && request.method === 'POST') {
-        const sec = Math.min(15, Math.max(0, Number(url.searchParams.get('sec')) || 0));
-        const big = url.searchParams.get('big') === '1';
-        const bodyText = await request.text();
-        if (sec) await new Promise(r => setTimeout(r, sec * 1000));
-        const payload = { ok: true, waited: sec, got: bodyText.length };
-        if (big) payload.pad = 'x'.repeat(4000);
-        return json(payload);
-      }
-      // Диагностика: keepalive-СТРИМ без DeepSeek (как чат, но без модели) — изолирует стриминг.
-      if (url.pathname === '/streamtest' && request.method === 'POST') {
-        const sec = Math.min(15, Math.max(0, Number(url.searchParams.get('sec')) || 0));
-        return keepaliveJson(ctx, async () => {
-          if (sec) await new Promise(r => setTimeout(r, sec * 1000));
-          return { ok: true, waited: sec, streamed: true };
-        });
-      }
-      // Диагностическая страница: гоняет набор тестов из браузера телефона.
-      if (url.pathname === '/diag' && request.method === 'GET') {
-        return new Response(DIAG_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...CORS } });
+      // Временно: отдаёт кабинет как страницу (jsDelivr шлёт HTML как text/plain).
+      // Воркер тянет файл серверно (CF->jsDelivr, без РФ-DPI) и отдаёт с text/html.
+      if (url.pathname === '/preview' && request.method === 'GET') {
+        const ref = url.searchParams.get('ref') || 'main';
+        const src = 'https://cdn.jsdelivr.net/gh/memnikf/baza-rosta-cabinet@' + ref + '/frontend/cabinet-tilda.html';
+        const r = await fetch(src, { cf: { cacheTtl: 0 } });
+        const html = await r.text();
+        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
       }
       return json({ error: 'not found' }, 404);
     } catch (e) {
