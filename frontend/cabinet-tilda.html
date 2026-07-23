@@ -21,12 +21,19 @@
     return { tilda_user_id: localUid, email: 'guest@local.com', name: 'Гость' };
   }
   let CURRENT_USER = window.CURRENT_USER || getCurrentUser();
+  // На РФ-сетях POST к Cloudflare рвётся DPI (и требует CORS-preflight), GET стабилен — шлём всё через GET с параметрами в URL.
+  function apiGet(path, extra) {
+    var params = Object.assign({}, CURRENT_USER, extra || {});
+    var qs = Object.keys(params).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k] == null ? '' : params[k]); }).join('&');
+    return fetch(API_URL + path + '?' + qs, { method: 'GET' });
+  }
+  window.apiGet = apiGet;
   async function initUserProfile() {
     for (let i = 0; i < 20; i++) { if (window.tilda_member && (window.tilda_member.user_id || window.tilda_member.id)) break; if (String(CURRENT_USER.tilda_user_id).indexOf('guest-') !== 0) break; await new Promise(r => setTimeout(r, 300)); }
     CURRENT_USER = getCurrentUser();
     var un = document.getElementById('userName'); var pn = document.getElementById('practiceUserName');
     if (un) un.textContent = CURRENT_USER.name; if (pn) pn.textContent = CURRENT_USER.name;
-    try { await fetch(API_URL + '/api/user/init', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CURRENT_USER) }); loadChatHistory(); loadPracticeHistory(); } catch (e) { console.error(e); }
+    try { await apiGet('/api/user/init', {}); loadChatHistory(); loadPracticeHistory(); } catch (e) { console.error(e); }
   }
   window.addEventListener('DOMContentLoaded', initUserProfile);
 </script>
@@ -529,7 +536,7 @@ function sendMsg(){
     if(!testName||testName.length<2){
       addBubble('consultMsgs','ai','Выберите тест из списка ниже 👇');
       openTestPopup();
-      fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))});
+      apiGet('/chat',{message:text});
       return;
     }
 
@@ -537,13 +544,13 @@ function sendMsg(){
     var idx=findTestByName(testName);
     if(idx!==-1){
       addBubble('consultMsgs','ai','Открываю тест «'+tests[idx].name+'». Приступаем! 🧪');
-      fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))});
+      apiGet('/chat',{message:text});
       setTimeout(function(){goTab('tests');startTest(idx)},600);
       return;
     }else{
       addBubble('consultMsgs','ai','Не удалось найти тест «'+escHtml(testName)+'». Проверьте название и попробуйте ещё раз.');
       openTestPopup();
-      fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))});
+      apiGet('/chat',{message:text});
       return;
     }
   }
@@ -551,7 +558,7 @@ function sendMsg(){
   /* Обычное сообщение — отправляем ИИ */
   var tid='typ-'+Date.now();showTyping('consultMsgs',tid);
   var reply='';
-  fetch(API_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))}).then(function(res){
+  apiGet('/chat',{message:text}).then(function(res){
     if(!res.ok)return res.json().then(function(e){throw new Error(e.details||e.error||'Статус '+res.status)});return res.json();
   }).then(function(d){reply=d.reply||'Пустой ответ.'}).catch(function(e){reply='⚠️ Ошибка: '+e.message}).finally(function(){
     var el=document.getElementById(tid);if(el)el.remove();
@@ -572,7 +579,7 @@ function sendPracticeMsg(){
   var input=document.getElementById('practiceInput');var text=input.value.trim();if(!text)return;input.value='';
   addBubble('practiceMsgs','user',escHtml(text));
   var tid='ptyp-'+Date.now();showTyping('practiceMsgs',tid,'📝');var reply='';
-  fetch(API_URL+'/practice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{message:text}))}).then(function(res){
+  apiGet('/practice',{message:text}).then(function(res){
     if(!res.ok)return res.json().then(function(e){throw new Error(e.details||e.error||'Статус '+res.status)});return res.json();
   }).then(function(d){reply=d.reply||'Пустой ответ.'}).catch(function(e){reply='⚠️ Ошибка: '+e.message}).finally(function(){
     var el=document.getElementById(tid);if(el)el.remove();
@@ -627,7 +634,7 @@ function finishTest(){
   var level=ratio>=0.7?'low':ratio>=0.4?'mid':'high';var r=t.results[level];
   document.getElementById('trIco').textContent=r.ico;document.getElementById('trTitle').textContent=r.title;
   document.getElementById('trScore').textContent=score+' / '+t.questions.length;document.getElementById('trDesc').textContent=r.desc;
-  fetch(API_URL+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},CURRENT_USER,{test_name:t.name,score:score,interpretation:r.title}))}).catch(function(e){console.error(e)});
+  apiGet('/test',{test_name:t.name,score:score,interpretation:r.title}).catch(function(e){console.error(e)});
   document.getElementById('testPass').classList.remove('active');document.getElementById('testResult').classList.add('active');
 }
 

@@ -283,6 +283,42 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Password',
 };
 
+// Диагностическая страница (/diag): из браузера телефона гоняет набор запросов
+// и выдаёт готовый к копированию результат — чтобы понять, что именно рвёт РФ-DPI.
+const DIAG_HTML = '<!doctype html><html lang="ru"><head><meta charset="utf-8">' +
+'<meta name="viewport" content="width=device-width,initial-scale=1"><title>Диагностика связи</title>' +
+'<style>body{font-family:-apple-system,system-ui,sans-serif;padding:16px;font-size:16px;background:#111;color:#eee;line-height:1.5}' +
+'h1{font-size:18px}.row{padding:8px 0;border-bottom:1px solid #333}.ok{color:#4caf50}.err{color:#ff5252}.run{color:#ffb300}' +
+'#sum{margin-top:16px;padding:12px;background:#1e1e1e;border-radius:8px;white-space:pre-wrap;font-size:14px;user-select:all}</style>' +
+'</head><body><h1>Диагностика связи с сервером</h1><p>Открой без VPN. Каждый запрос ограничен 12 сек. Дождись конца, пришли текст из серой рамки.</p>' +
+'<div id="list"></div><div id="sum">Запускаю тесты…</div><script>' +
+'var API=location.origin;var H={"Content-Type":"application/json"};' +
+'var ECHOB=JSON.stringify({m:"привет"});var CHATB=JSON.stringify({tilda_user_id:"diag_probe",message:"Тест связи, ответь одним словом"});' +
+'var tests=[' +
+'{n:"GET fast",u:"/slowtest?sec=0"},' +
+'{n:"GET 5s",u:"/slowtest?sec=5"},' +
+'{n:"POST fast #1",u:"/echo?sec=0",p:1},' +
+'{n:"POST fast #2",u:"/echo?sec=0",p:1},' +
+'{n:"POST fast #3",u:"/echo?sec=0",p:1},' +
+'{n:"POST buffered 5s",u:"/echo?sec=5",p:1},' +
+'{n:"STREAM 5s #1",u:"/streamtest?sec=5",p:1},' +
+'{n:"STREAM 5s #2",u:"/streamtest?sec=5",p:1},' +
+'{n:"STREAM 5s #3",u:"/streamtest?sec=5",p:1},' +
+'{n:"CHAT #1",u:"/chat",c:1},' +
+'{n:"CHAT #2",u:"/chat",c:1}' +
+'];' +
+'var list=document.getElementById("list"),sum=document.getElementById("sum");' +
+'(async function(){var res=[];for(var i=0;i<tests.length;i++){var t=tests[i];' +
+'var opts=t.c?{method:"POST",headers:H,body:CHATB}:(t.p?{method:"POST",headers:H,body:ECHOB}:{});' +
+'var ac=new AbortController();opts.signal=ac.signal;var to=setTimeout(function(){ac.abort()},12000);' +
+'var row=document.createElement("div");row.className="row";row.textContent="... "+t.n;list.appendChild(row);' +
+'var t0=Date.now();try{var r=await fetch(API+t.u,opts);var txt=await r.text();clearTimeout(to);var ms=Date.now()-t0;' +
+'row.className="row ok";row.textContent="OK "+t.n+" - "+r.status+", "+ms+" ms";res.push(t.n+": OK "+r.status+" "+ms+"ms")}' +
+'catch(e){clearTimeout(to);var ms2=Date.now()-t0;var msg=e&&e.name==="AbortError"?"TIMEOUT>12s":((e&&e.message)||String(e));' +
+'row.className="row err";row.textContent="FAIL "+t.n+" - "+msg+" ("+ms2+" ms)";res.push(t.n+": FAIL "+msg+" "+ms2+"ms")}}' +
+'sum.textContent="СКОПИРУЙ И ПРИШЛИ ЭТО:\\n\\n"+res.join("\\n")})();' +
+'</script></body></html>';
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -336,6 +372,18 @@ function safeParse(s) {
   try { return JSON.parse(s); } catch (e) { return null; }
 }
 
+// Вход запроса: из query (GET) или из JSON-тела (POST).
+// На сетях РФ POST к Cloudflare часто рвётся/висит, а GET стабилен —
+// поэтому фронт шлёт запись через GET с параметрами в URL.
+async function readInput(request) {
+  if (request.method === 'GET') {
+    const o = {};
+    for (const [k, v] of new URL(request.url).searchParams) o[k] = v;
+    return o;
+  }
+  try { return await request.json(); } catch (e) { return {}; }
+}
+
 // число 0..100 или null
 function num(v) {
   const n = Number(v);
@@ -347,21 +395,50 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(request.url);
     try {
-      if (url.pathname === '/api/user/init' && request.method === 'POST') return await userInit(request, env);
-      if (url.pathname === '/chat' && request.method === 'POST') return await chat(request, env, ctx);
+      if (url.pathname === '/api/user/init' && (request.method === 'POST' || request.method === 'GET')) return await userInit(request, env);
+      if (url.pathname === '/chat' && (request.method === 'POST' || request.method === 'GET')) return await chat(request, env, ctx);
       if (url.pathname === '/history' && request.method === 'GET') return await chatHistory(url, env);
       if (url.pathname === '/state' && request.method === 'GET') return await state(url, env);
       if (url.pathname === '/state/history' && request.method === 'GET') return await stateHistory(url, env);
-      if (url.pathname === '/test' && request.method === 'POST') return await testSave(request, env);
+      if (url.pathname === '/test' && (request.method === 'POST' || request.method === 'GET')) return await testSave(request, env);
       if (url.pathname === '/tests' && request.method === 'GET') return await testsList(url, env);
       if (url.pathname === '/test/history' && request.method === 'GET') return await testsList(url, env); // алиас для фронта
       if (url.pathname === '/recommendations' && request.method === 'GET') return await recomList(url, env);
-      if (url.pathname === '/practice' && request.method === 'POST') return await practiceChat(request, env, ctx);
+      if (url.pathname === '/practice' && (request.method === 'POST' || request.method === 'GET')) return await practiceChat(request, env, ctx);
       if (url.pathname === '/practice/history' && request.method === 'GET') return await practiceHistory(url, env);
       if (url.pathname === '/admin/knowledge' && request.method === 'GET') return await knowledgeList(request, url, env);
       if (url.pathname === '/admin/knowledge' && request.method === 'POST') return await knowledgeSave(request, env);
       if (url.pathname === '/admin/knowledge/delete' && request.method === 'POST') return await knowledgeDelete(request, env);
       if (url.pathname === '/knowledge/tests' && request.method === 'GET') return await knowledgeTests(env);
+      // Диагностика РФ-DPI: ждём sec секунд «молча», затем короткий JSON.
+      // Если /slowtest?sec=5 рвётся на мобильном, а sec=1 — нет, значит DPI режет по длительности.
+      if (url.pathname === '/slowtest' && request.method === 'GET') {
+        const sec = Math.min(15, Math.max(0, Number(url.searchParams.get('sec')) || 0));
+        await new Promise(r => setTimeout(r, sec * 1000));
+        return json({ ok: true, waited: sec });
+      }
+      // Диагностика: POST-эхо. ?sec — задержка, ?big=1 — крупный ответ. Тело читаем целиком.
+      if (url.pathname === '/echo' && request.method === 'POST') {
+        const sec = Math.min(15, Math.max(0, Number(url.searchParams.get('sec')) || 0));
+        const big = url.searchParams.get('big') === '1';
+        const bodyText = await request.text();
+        if (sec) await new Promise(r => setTimeout(r, sec * 1000));
+        const payload = { ok: true, waited: sec, got: bodyText.length };
+        if (big) payload.pad = 'x'.repeat(4000);
+        return json(payload);
+      }
+      // Диагностика: keepalive-СТРИМ без DeepSeek (как чат, но без модели) — изолирует стриминг.
+      if (url.pathname === '/streamtest' && request.method === 'POST') {
+        const sec = Math.min(15, Math.max(0, Number(url.searchParams.get('sec')) || 0));
+        return keepaliveJson(ctx, async () => {
+          if (sec) await new Promise(r => setTimeout(r, sec * 1000));
+          return { ok: true, waited: sec, streamed: true };
+        });
+      }
+      // Диагностическая страница: гоняет набор тестов из браузера телефона.
+      if (url.pathname === '/diag' && request.method === 'GET') {
+        return new Response(DIAG_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...CORS } });
+      }
       return json({ error: 'not found' }, 404);
     } catch (e) {
       return json({ error: 'server error', detail: String(e && e.message || e) }, 500);
@@ -384,7 +461,7 @@ async function upsertUser(env, u) {
 }
 
 async function userInit(request, env) {
-  const body = await request.json();
+  const body = await readInput(request);
   const uid = await upsertUser(env, body);
   if (!uid) return json({ error: 'tilda_user_id required' }, 400);
   const user = await env.DB.prepare('SELECT name FROM users WHERE tilda_user_id=?').bind(uid).first();
@@ -408,7 +485,7 @@ async function chatHistory(url, env) {
 /* ================= ЧАТ ================= */
 
 async function chat(request, env, ctx) {
-  const body = await request.json();
+  const body = await readInput(request);
   const uid = await upsertUser(env, body);
   const text = String(body.message || '').trim().slice(0, MAX_MSG_LEN);
   if (!uid || !text) return json({ error: 'tilda_user_id and message required' }, 400);
@@ -432,8 +509,9 @@ async function chat(request, env, ctx) {
     { role: 'user', content: userContent },
   ];
 
-  // Долгий вызов DeepSeek уводим под keepalive, чтобы РФ-DPI не рвал соединение
-  return keepaliveJson(ctx, async () => {
+  // Ответ отдаём буферизованно (обычный json): на РФ-сетях GET стабилен,
+  // а POST/стриминг к Cloudflare рвётся. Фронт зовёт /chat через GET.
+  {
     const resp = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -451,7 +529,7 @@ async function chat(request, env, ctx) {
     if (!resp.ok) {
       const errText = await resp.text();
       console.log('DeepSeek error:', resp.status, errText);
-      return { reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' };
+      return json({ reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' });
     }
 
     const data = await resp.json();
@@ -484,8 +562,8 @@ async function chat(request, env, ctx) {
       await saveRecommendations(env, uid, hidden.recommendations);
     }
 
-    return { reply };
-  });
+    return json({ reply });
+  }
 }
 
 function profileBlock(user, lastState) {
@@ -681,7 +759,7 @@ async function stateHistory(url, env) {
 /* ================= ТЕСТЫ ================= */
 
 async function testSave(request, env) {
-  const body = await request.json();
+  const body = await readInput(request);
   const uid = await upsertUser(env, body);
   const name = String(body.test_name || '').trim().slice(0, 200);
   if (!uid || !name) return json({ error: 'tilda_user_id and test_name required' }, 400);
@@ -837,7 +915,7 @@ async function practiceHistory(url, env) {
 }
 
 async function practiceChat(request, env, ctx) {
-  const body = await request.json();
+  const body = await readInput(request);
   const uid = await upsertUser(env, body);
   const text = String(body.message || '').trim().slice(0, MAX_MSG_LEN);
   if (!uid || !text) return json({ error: 'tilda_user_id and message required' }, 400);
@@ -859,7 +937,8 @@ async function practiceChat(request, env, ctx) {
     { role: 'user', content: userContent },
   ];
 
-  return keepaliveJson(ctx, async () => {
+  // Буферизованный ответ через GET — как в основном чате (POST на РФ-сетях рвётся)
+  {
     const resp = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -877,7 +956,7 @@ async function practiceChat(request, env, ctx) {
     if (!resp.ok) {
       const errText = await resp.text();
       console.log('DeepSeek practice error:', resp.status, errText);
-      return { reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' };
+      return json({ reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' });
     }
 
     const data = await resp.json();
@@ -904,6 +983,6 @@ async function practiceChat(request, env, ctx) {
       await saveRecommendations(env, uid, hidden.recommendations);
     }
 
-    return { reply };
-  });
+    return json({ reply });
+  }
 }
