@@ -290,6 +290,48 @@ function json(data, status = 200) {
   });
 }
 
+// Держим соединение «живым», пока воркер ждёт DeepSeek (3-4 сек).
+// РФ-DPI (напр. Tele2 на мобильном) рвёт «молчащее» долгое соединение —
+// быстрые GET проскакивают, а тихий POST-чат сбрасывается («load failed»).
+// Шлём пробел сразу и раз в ~0.7с, затем сам JSON. Пробелы перед JSON
+// парсер клиента игнорирует (JSON.parse), поэтому фронт менять не нужно.
+function keepaliveJson(ctx, produce) {
+  const ts = new TransformStream();
+  const writer = ts.writable.getWriter();
+  const enc = new TextEncoder();
+  let done = false;
+
+  const pump = (async () => {
+    try {
+      await writer.write(enc.encode(' ')); // первый байт сразу
+      while (!done) {
+        await new Promise(r => setTimeout(r, 700));
+        if (done) break;
+        await writer.write(enc.encode(' '));
+      }
+    } catch (e) { /* клиент отключился — молча выходим */ }
+  })();
+
+  const run = (async () => {
+    let payload;
+    try {
+      payload = await produce();
+    } catch (e) {
+      console.log('keepalive produce error:', String(e && e.message || e));
+      payload = { reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' };
+    }
+    done = true;
+    try { await writer.write(enc.encode(JSON.stringify(payload))); } catch (e) {}
+    try { await writer.close(); } catch (e) {}
+  })();
+
+  if (ctx && ctx.waitUntil) ctx.waitUntil(Promise.all([pump, run]));
+
+  return new Response(ts.readable, {
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
+  });
+}
+
 function safeParse(s) {
   try { return JSON.parse(s); } catch (e) { return null; }
 }
@@ -301,12 +343,12 @@ function num(v) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(request.url);
     try {
       if (url.pathname === '/api/user/init' && request.method === 'POST') return await userInit(request, env);
-      if (url.pathname === '/chat' && request.method === 'POST') return await chat(request, env);
+      if (url.pathname === '/chat' && request.method === 'POST') return await chat(request, env, ctx);
       if (url.pathname === '/history' && request.method === 'GET') return await chatHistory(url, env);
       if (url.pathname === '/state' && request.method === 'GET') return await state(url, env);
       if (url.pathname === '/state/history' && request.method === 'GET') return await stateHistory(url, env);
@@ -314,7 +356,7 @@ export default {
       if (url.pathname === '/tests' && request.method === 'GET') return await testsList(url, env);
       if (url.pathname === '/test/history' && request.method === 'GET') return await testsList(url, env); // алиас для фронта
       if (url.pathname === '/recommendations' && request.method === 'GET') return await recomList(url, env);
-      if (url.pathname === '/practice' && request.method === 'POST') return await practiceChat(request, env);
+      if (url.pathname === '/practice' && request.method === 'POST') return await practiceChat(request, env, ctx);
       if (url.pathname === '/practice/history' && request.method === 'GET') return await practiceHistory(url, env);
       if (url.pathname === '/admin/knowledge' && request.method === 'GET') return await knowledgeList(request, url, env);
       if (url.pathname === '/admin/knowledge' && request.method === 'POST') return await knowledgeSave(request, env);
@@ -365,7 +407,7 @@ async function chatHistory(url, env) {
 
 /* ================= ЧАТ ================= */
 
-async function chat(request, env) {
+async function chat(request, env, ctx) {
   const body = await request.json();
   const uid = await upsertUser(env, body);
   const text = String(body.message || '').trim().slice(0, MAX_MSG_LEN);
@@ -390,57 +432,60 @@ async function chat(request, env) {
     { role: 'user', content: userContent },
   ];
 
-  const resp = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + env.DEEPSEEK_API_KEY,
-    },
-    body: JSON.stringify({
-      model: env.DEEPSEEK_MODEL || MODEL_DEFAULT,
-      messages,
-      temperature: 0.7,
-      max_tokens: 1500,
-    }),
-  });
+  // Долгий вызов DeepSeek уводим под keepalive, чтобы РФ-DPI не рвал соединение
+  return keepaliveJson(ctx, async () => {
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + env.DEEPSEEK_API_KEY,
+      },
+      body: JSON.stringify({
+        model: env.DEEPSEEK_MODEL || MODEL_DEFAULT,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1500,
+      }),
+    });
 
-  if (!resp.ok) {
-    const errText = await resp.text();
-    console.log('DeepSeek error:', resp.status, errText);
-    return json({ reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' });
-  }
-
-  const data = await resp.json();
-  const raw = data.choices && data.choices[0] && data.choices[0].message
-    ? String(data.choices[0].message.content || '')
-    : '';
-
-  // Вырезаем скрытый JSON-блок из ответа и сохраняем его в D1
-  let { cleaned, hidden } = extractHiddenJson(raw);
-  const reply = cleaned || 'Я вас слушаю. Расскажите подробнее.';
-
-  // Модель нестабильно добавляет скрытый JSON — если его нет (или state_update пустой),
-  // извлекаем состояние отдельным запросом
-  if (!hidden || stateUpdateEmpty(hidden.state_update)) {
-    const fb = await extractStateFallback(env, text);
-    if (fb && !stateUpdateEmpty(fb.state_update)) hidden = Object.assign({}, hidden, fb);
-  }
-
-  // История: храним «чистые» реплики без служебного JSON и без блока профиля
-  await env.DB.prepare('INSERT INTO messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'user', text).run();
-  await env.DB.prepare('INSERT INTO messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'assistant', reply).run();
-
-  if (hidden) {
-    await saveMemory(env, uid, user, hidden.memory_update);
-    await saveState(env, uid, lastState, hidden);
-    if (hidden.diary_entry) {
-      await env.DB.prepare('INSERT INTO diary (user_id, entry_json) VALUES (?,?)')
-        .bind(uid, JSON.stringify(hidden.diary_entry)).run();
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.log('DeepSeek error:', resp.status, errText);
+      return { reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' };
     }
-    await saveRecommendations(env, uid, hidden.recommendations);
-  }
 
-  return json({ reply });
+    const data = await resp.json();
+    const raw = data.choices && data.choices[0] && data.choices[0].message
+      ? String(data.choices[0].message.content || '')
+      : '';
+
+    // Вырезаем скрытый JSON-блок из ответа и сохраняем его в D1
+    let { cleaned, hidden } = extractHiddenJson(raw);
+    const reply = cleaned || 'Я вас слушаю. Расскажите подробнее.';
+
+    // Модель нестабильно добавляет скрытый JSON — если его нет (или state_update пустой),
+    // извлекаем состояние отдельным запросом
+    if (!hidden || stateUpdateEmpty(hidden.state_update)) {
+      const fb = await extractStateFallback(env, text);
+      if (fb && !stateUpdateEmpty(fb.state_update)) hidden = Object.assign({}, hidden, fb);
+    }
+
+    // История: храним «чистые» реплики без служебного JSON и без блока профиля
+    await env.DB.prepare('INSERT INTO messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'user', text).run();
+    await env.DB.prepare('INSERT INTO messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'assistant', reply).run();
+
+    if (hidden) {
+      await saveMemory(env, uid, user, hidden.memory_update);
+      await saveState(env, uid, lastState, hidden);
+      if (hidden.diary_entry) {
+        await env.DB.prepare('INSERT INTO diary (user_id, entry_json) VALUES (?,?)')
+          .bind(uid, JSON.stringify(hidden.diary_entry)).run();
+      }
+      await saveRecommendations(env, uid, hidden.recommendations);
+    }
+
+    return { reply };
+  });
 }
 
 function profileBlock(user, lastState) {
@@ -791,7 +836,7 @@ async function practiceHistory(url, env) {
   return json({ history: (res.results || []).reverse() });
 }
 
-async function practiceChat(request, env) {
+async function practiceChat(request, env, ctx) {
   const body = await request.json();
   const uid = await upsertUser(env, body);
   const text = String(body.message || '').trim().slice(0, MAX_MSG_LEN);
@@ -814,49 +859,51 @@ async function practiceChat(request, env) {
     { role: 'user', content: userContent },
   ];
 
-  const resp = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + env.DEEPSEEK_API_KEY,
-    },
-    body: JSON.stringify({
-      model: env.DEEPSEEK_MODEL || MODEL_DEFAULT,
-      messages,
-      temperature: 0.7,
-      max_tokens: 1500,
-    }),
+  return keepaliveJson(ctx, async () => {
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + env.DEEPSEEK_API_KEY,
+      },
+      body: JSON.stringify({
+        model: env.DEEPSEEK_MODEL || MODEL_DEFAULT,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1500,
+      }),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.log('DeepSeek practice error:', resp.status, errText);
+      return { reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' };
+    }
+
+    const data = await resp.json();
+    const raw = data.choices && data.choices[0] && data.choices[0].message
+      ? String(data.choices[0].message.content || '')
+      : '';
+
+    let { cleaned, hidden } = extractHiddenJson(raw);
+    const reply = cleaned || 'Расскажите подробнее о выполненной практике.';
+
+    // Как и в основном чате: без скрытого JSON (или с пустым state_update)
+    // извлекаем состояние отдельным запросом
+    if (!hidden || stateUpdateEmpty(hidden.state_update)) {
+      const fb = await extractStateFallback(env, text);
+      if (fb && !stateUpdateEmpty(fb.state_update)) hidden = Object.assign({}, hidden, fb);
+    }
+
+    await env.DB.prepare('INSERT INTO practice_messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'user', text).run();
+    await env.DB.prepare('INSERT INTO practice_messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'assistant', reply).run();
+
+    // Практика тоже влияет на дневник состояния и рекомендации
+    if (hidden) {
+      await saveState(env, uid, lastState, hidden);
+      await saveRecommendations(env, uid, hidden.recommendations);
+    }
+
+    return { reply };
   });
-
-  if (!resp.ok) {
-    const errText = await resp.text();
-    console.log('DeepSeek practice error:', resp.status, errText);
-    return json({ reply: 'Сервис временно недоступен, попробуйте ещё раз через минуту.' });
-  }
-
-  const data = await resp.json();
-  const raw = data.choices && data.choices[0] && data.choices[0].message
-    ? String(data.choices[0].message.content || '')
-    : '';
-
-  let { cleaned, hidden } = extractHiddenJson(raw);
-  const reply = cleaned || 'Расскажите подробнее о выполненной практике.';
-
-  // Как и в основном чате: без скрытого JSON (или с пустым state_update)
-  // извлекаем состояние отдельным запросом
-  if (!hidden || stateUpdateEmpty(hidden.state_update)) {
-    const fb = await extractStateFallback(env, text);
-    if (fb && !stateUpdateEmpty(fb.state_update)) hidden = Object.assign({}, hidden, fb);
-  }
-
-  await env.DB.prepare('INSERT INTO practice_messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'user', text).run();
-  await env.DB.prepare('INSERT INTO practice_messages (user_id, role, content) VALUES (?,?,?)').bind(uid, 'assistant', reply).run();
-
-  // Практика тоже влияет на дневник состояния и рекомендации
-  if (hidden) {
-    await saveState(env, uid, lastState, hidden);
-    await saveRecommendations(env, uid, hidden.recommendations);
-  }
-
-  return json({ reply });
 }
